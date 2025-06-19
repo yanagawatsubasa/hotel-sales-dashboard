@@ -112,18 +112,87 @@
             font-family: monospace;
             font-size: 0.85em;
         }
+
+        /* ページネーション関連のスタイル */
+        .pagination-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .pagination-info {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .pagination-buttons {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .pagination-buttons button {
+            padding: 8px 16px;
+            border: 1px solid #007bff;
+            background: white;
+            color: #007bff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .pagination-buttons button:hover:not(:disabled) {
+            background: #007bff;
+            color: white;
+        }
+
+        .pagination-buttons button:disabled {
+            background: #f8f9fa;
+            color: #6c757d;
+            border-color: #dee2e6;
+            cursor: not-allowed;
+        }
+
+        .pagination-buttons button.active {
+            background: #007bff;
+            color: white;
+        }
+
+        .page-size-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .page-size-selector select {
+            padding: 6px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .table-container {
+            margin-top: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>🏨 ホテル売上管理ダッシュボード</h1>
-            <p>Supabase連携版 - フィルター修正版</p>
+            <p>Supabase連携版 - ページネーション対応版</p>
         </div>
         
         <div class="section">
             <div class="status" id="status">
-                <span class="loading">デバッグモードで接続中...</span>
+                <span class="loading">データベースからデータを取得中...</span>
             </div>
         </div>
         
@@ -149,8 +218,33 @@
                     <div class="value" id="dateRange">-</div>
                 </div>
             </div>
+
+            <!-- ページネーション制御 -->
+            <div class="pagination-controls">
+                <div class="page-size-selector">
+                    <label for="pageSize">表示件数:</label>
+                    <select id="pageSize" onchange="changePageSize()">
+                        <option value="50">50件</option>
+                        <option value="100" selected>100件</option>
+                        <option value="200">200件</option>
+                        <option value="500">500件</option>
+                    </select>
+                </div>
+                
+                <div class="pagination-info" id="paginationInfo">
+                    - / -
+                </div>
+                
+                <div class="pagination-buttons">
+                    <button onclick="goToFirstPage()" id="firstBtn">最初</button>
+                    <button onclick="goToPrevPage()" id="prevBtn">前へ</button>
+                    <span id="pageNumbers"></span>
+                    <button onclick="goToNextPage()" id="nextBtn">次へ</button>
+                    <button onclick="goToLastPage()" id="lastBtn">最後</button>
+                </div>
+            </div>
             
-            <div style="margin-top: 30px; max-height: 400px; overflow-y: auto;">
+            <div class="table-container">
                 <table>
                     <thead>
                         <tr>
@@ -200,7 +294,10 @@
         const SUPABASE_URL = 'https://ypohqgcfdcdykvlanhgf.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlwb2hxZ2NmZGNkeWt2bGFuaGdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAyODg5NTgsImV4cCI6MjA2NTg2NDk1OH0.RMaAA4tFQC5rvQ49qy13F2-2cJslTQwIT1jxYGcSqXc';
         
-        let allData = []; // グローバル変数
+        let allData = []; // 全データ
+        let filteredData = []; // フィルター後のデータ
+        let currentPage = 1;
+        let pageSize = 100;
         
         function updateDebugInfo(info) {
             const debugEl = document.getElementById('debugInfo');
@@ -214,7 +311,9 @@
             console.log('=== displayData関数実行開始 ===');
             console.log('受信データ:', data);
             
-            allData = data; // グローバル変数に保存
+            allData = data;
+            filteredData = data; // 初期状態では全データを表示
+            currentPage = 1; // ページをリセット
             
             // デバッグ情報を表示
             const debugInfo = `
@@ -231,8 +330,11 @@
             updateDebugInfo(debugInfo);
             
             try {
-                // DOM更新
-                updateSummaryAndTable(data);
+                // サマリー更新（フィルターされていないデータで）
+                updateSummary(data);
+                
+                // ページネーション付きでテーブル表示
+                updatePaginatedTable();
                 
                 // フィルター設定
                 setupFilters(data);
@@ -251,8 +353,7 @@
             }
         }
         
-        function updateSummaryAndTable(data) {
-            // サマリー更新
+        function updateSummary(data) {
             const totalCount = data.length;
             const totalSales = data.reduce((sum, row) => sum + (row.合計金額 || 0), 0);
             const dates = data.map(row => row.日付).filter(date => date).sort();
@@ -265,13 +366,20 @@
             if (totalCountEl) totalCountEl.textContent = totalCount.toLocaleString();
             if (totalSalesEl) totalSalesEl.textContent = totalSales.toLocaleString() + '円';
             if (dateRangeEl) dateRangeEl.textContent = dateRange;
+        }
+        
+        function updatePaginatedTable() {
+            const totalPages = Math.ceil(filteredData.length / pageSize);
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = Math.min(startIndex + pageSize, filteredData.length);
+            const currentPageData = filteredData.slice(startIndex, endIndex);
             
             // テーブル更新
             const tbody = document.getElementById('dataTableBody');
             if (tbody) {
                 tbody.innerHTML = '';
                 
-                data.forEach(row => {
+                currentPageData.forEach(row => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td>${row.日付 || '-'}</td>
@@ -283,6 +391,80 @@
                     tbody.appendChild(tr);
                 });
             }
+            
+            // ページネーション情報更新
+            updatePaginationControls(totalPages, startIndex, endIndex);
+        }
+        
+        function updatePaginationControls(totalPages, startIndex, endIndex) {
+            // ページ情報表示
+            const paginationInfo = document.getElementById('paginationInfo');
+            if (paginationInfo) {
+                paginationInfo.textContent = `${startIndex + 1}-${endIndex} / ${filteredData.length}件 (${currentPage}/${totalPages}ページ)`;
+            }
+            
+            // ボタンの有効/無効制御
+            document.getElementById('firstBtn').disabled = currentPage === 1;
+            document.getElementById('prevBtn').disabled = currentPage === 1;
+            document.getElementById('nextBtn').disabled = currentPage === totalPages;
+            document.getElementById('lastBtn').disabled = currentPage === totalPages;
+            
+            // ページ番号ボタン生成
+            const pageNumbers = document.getElementById('pageNumbers');
+            if (pageNumbers) {
+                pageNumbers.innerHTML = '';
+                
+                const startPage = Math.max(1, currentPage - 2);
+                const endPage = Math.min(totalPages, currentPage + 2);
+                
+                for (let i = startPage; i <= endPage; i++) {
+                    const button = document.createElement('button');
+                    button.textContent = i;
+                    button.onclick = () => goToPage(i);
+                    if (i === currentPage) {
+                        button.classList.add('active');
+                    }
+                    pageNumbers.appendChild(button);
+                }
+            }
+        }
+        
+        // ページネーション関数
+        function goToFirstPage() {
+            currentPage = 1;
+            updatePaginatedTable();
+        }
+        
+        function goToPrevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                updatePaginatedTable();
+            }
+        }
+        
+        function goToNextPage() {
+            const totalPages = Math.ceil(filteredData.length / pageSize);
+            if (currentPage < totalPages) {
+                currentPage++;
+                updatePaginatedTable();
+            }
+        }
+        
+        function goToLastPage() {
+            const totalPages = Math.ceil(filteredData.length / pageSize);
+            currentPage = totalPages;
+            updatePaginatedTable();
+        }
+        
+        function goToPage(page) {
+            currentPage = page;
+            updatePaginatedTable();
+        }
+        
+        function changePageSize() {
+            pageSize = parseInt(document.getElementById('pageSize').value);
+            currentPage = 1; // ページをリセット
+            updatePaginatedTable();
         }
         
         function setupFilters(data) {
@@ -347,21 +529,20 @@
             console.log('選択された請求先:', selectedDepartments);
             console.log('選択された決済種別:', selectedPayments);
             
-            // 修正されたフィルターロジック
-            const filteredData = allData.filter(row => {
-                // 請求先の条件チェック（選択されていない場合は空配列になるため、すべて表示）
+            // フィルター適用
+            filteredData = allData.filter(row => {
                 const departmentMatch = selectedDepartments.length === 0 || selectedDepartments.includes(row.請求先);
-                
-                // 決済種別の条件チェック（選択されていない場合は空配列になるため、すべて表示）
                 const paymentMatch = selectedPayments.length === 0 || selectedPayments.includes(row.決済種別);
-                
-                console.log(`行チェック - 請求先: "${row.請求先}", 決済種別: "${row.決済種別}", 請求先マッチ: ${departmentMatch}, 決済種別マッチ: ${paymentMatch}`);
-                
                 return departmentMatch && paymentMatch;
             });
             
             console.log('フィルター後のデータ件数:', filteredData.length);
-            console.log('フィルター後のデータ:', filteredData);
+            
+            // ページを最初にリセット
+            currentPage = 1;
+            
+            // テーブル更新
+            updatePaginatedTable();
             
             // デバッグ情報更新
             const debugInfo = `
@@ -370,16 +551,9 @@
                 • 選択された決済種別: ${selectedPayments.length > 0 ? selectedPayments.join(', ') : '（すべて）'}<br>
                 • フィルター前: ${allData.length}件<br>
                 • フィルター後: ${filteredData.length}件<br>
-                <br>
-                <strong>表示されるデータ:</strong><br>
-                ${filteredData.slice(0, 5).map(row => 
-                    `${row.日付} - ${row.請求先} - ${row.決済種別} - ${row.合計金額}円`
-                ).join('<br>')}
-                ${filteredData.length > 5 ? '<br>...' : ''}
+                • 現在のページサイズ: ${pageSize}件<br>
             `;
             updateDebugInfo(debugInfo);
-            
-            updateSummaryAndTable(filteredData);
         }
         
         function resetFilters() {
@@ -389,8 +563,12 @@
             const checkboxes = document.querySelectorAll('#filterSection input[type="checkbox"]');
             checkboxes.forEach(cb => cb.checked = true);
             
-            // 全データを表示
-            updateSummaryAndTable(allData);
+            // フィルターデータを全データに戻す
+            filteredData = allData;
+            currentPage = 1;
+            
+            // テーブル更新
+            updatePaginatedTable();
             
             // デバッグ情報更新
             const debugInfo = `
@@ -401,6 +579,46 @@
             updateDebugInfo(debugInfo);
         }
         
+        // データ取得関数を修正（全件取得）
+        async function fetchAllData() {
+            console.log('=== 全データ取得開始 ===');
+            
+            let allRecords = [];
+            let from = 0;
+            const limit = 1000; // Supabaseの制限に合わせて1000件ずつ取得
+            
+            while (true) {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/sales_data?limit=${limit}&offset=${from}`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log(`${from}件目から${from + data.length}件目までのデータを取得`);
+                
+                if (data.length === 0) {
+                    break; // データがない場合は終了
+                }
+                
+                allRecords = allRecords.concat(data);
+                
+                if (data.length < limit) {
+                    break; // 最後のバッチ（1000件未満）の場合は終了
+                }
+                
+                from += limit;
+            }
+            
+            console.log(`=== 全データ取得完了: ${allRecords.length}件 ===`);
+            return allRecords;
+        }
+        
         // 接続テスト
         window.addEventListener('load', async function() {
             console.log('=== ページ読み込み完了 ===');
@@ -408,30 +626,19 @@
             try {
                 document.getElementById('status').innerHTML = '<span class="loading">データベースからデータを取得中...</span>';
                 
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/sales_data`, {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-                    }
-                });
+                // 全データを取得
+                const data = await fetchAllData();
                 
-                console.log('レスポンス受信:', response.status);
+                console.log('データ取得成功:', data.length, '件');
                 
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('データ取得成功:', data.length, '件');
+                if (data.length > 0) {
+                    document.getElementById('status').innerHTML = `<span class="success">✅ ${data.length}件のデータを取得しました</span>`;
                     
-                    if (data.length > 0) {
-                        document.getElementById('status').innerHTML = `<span class="success">✅ ${data.length}件のデータを取得しました</span>`;
-                        
-                        console.log('displayData関数を呼び出し中...');
-                        displayData(data);
-                        
-                    } else {
-                        document.getElementById('status').innerHTML = '<span class="success">✅ 接続成功（データは空）</span>';
-                    }
+                    console.log('displayData関数を呼び出し中...');
+                    displayData(data);
+                    
                 } else {
-                    throw new Error(`HTTP ${response.status}`);
+                    document.getElementById('status').innerHTML = '<span class="success">✅ 接続成功（データは空）</span>';
                 }
                 
             } catch (error) {
