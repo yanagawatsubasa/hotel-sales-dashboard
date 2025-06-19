@@ -102,19 +102,34 @@
         th {
             background: #f8f9fa;
         }
+
+        .debug-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.85em;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>🏨 ホテル売上管理ダッシュボード</h1>
-            <p>Supabase連携版 - デバッグ</p>
+            <p>Supabase連携版 - フィルター修正版</p>
         </div>
         
         <div class="section">
             <div class="status" id="status">
                 <span class="loading">デバッグモードで接続中...</span>
             </div>
+        </div>
+        
+        <div class="section" id="debugSection" style="display: none;">
+            <h2 style="margin-bottom: 20px; color: #2c3e50;">🐛 デバッグ情報</h2>
+            <div class="debug-info" id="debugInfo"></div>
         </div>
         
         <div class="section" id="dataSection" style="display: none;">
@@ -150,6 +165,8 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+
         <div class="section" id="filterSection" style="display: none;">
             <h2 style="margin-bottom: 20px; color: #2c3e50;">🔍 フィルター</h2>
             
@@ -174,6 +191,7 @@
                 <button onclick="resetFilters()" style="background: #6c757d; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 1em; cursor: pointer; margin-left: 10px;">リセット</button>
             </div>
         </div>
+    </div>
 
     <script>
         console.log('=== スクリプト開始 ===');
@@ -182,8 +200,15 @@
         const SUPABASE_URL = 'https://ypohqgcfdcdykvlanhgf.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlwb2hxZ2NmZGNkeWt2bGFuaGdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAyODg5NTgsImV4cCI6MjA2NTg2NDk1OH0.RMaAA4tFQC5rvQ49qy13F2-2cJslTQwIT1jxYGcSqXc';
         
-        // データ表示関数を先に定義
-        let allData = []; // グローバル変数として追加
+        let allData = []; // グローバル変数
+        
+        function updateDebugInfo(info) {
+            const debugEl = document.getElementById('debugInfo');
+            if (debugEl) {
+                debugEl.innerHTML = info;
+                document.getElementById('debugSection').style.display = 'block';
+            }
+        }
         
         function displayData(data) {
             console.log('=== displayData関数実行開始 ===');
@@ -191,22 +216,21 @@
             
             allData = data; // グローバル変数に保存
             
+            // デバッグ情報を表示
+            const debugInfo = `
+                <strong>データ分析結果:</strong><br>
+                • 総件数: ${data.length}件<br>
+                • 請求先の種類: ${[...new Set(data.map(row => row.請求先).filter(d => d))].join(', ')}<br>
+                • 決済種別の種類: ${[...new Set(data.map(row => row.決済種別).filter(p => p))].join(', ')}<br>
+                <br>
+                <strong>サンプルデータ:</strong><br>
+                ${data.slice(0, 3).map(row => 
+                    `請求先: "${row.請求先}", 決済種別: "${row.決済種別}"`
+                ).join('<br>')}
+            `;
+            updateDebugInfo(debugInfo);
+            
             try {
-                // サマリー計算
-                const totalCount = data.length;
-                console.log('総件数:', totalCount);
-                
-                const totalSales = data.reduce((sum, row) => {
-                    const amount = row.合計金額 || 0;
-                    return sum + amount;
-                }, 0);
-                console.log('総売上:', totalSales);
-                
-                // 日付範囲計算
-                const dates = data.map(row => row.日付).filter(date => date).sort();
-                const dateRange = dates.length > 0 ? `${dates[0]} 〜 ${dates[dates.length - 1]}` : '-';
-                console.log('日付範囲:', dateRange);
-                
                 // DOM更新
                 updateSummaryAndTable(data);
                 
@@ -310,7 +334,7 @@
         }
         
         function applyFilters() {
-            console.log('フィルター適用開始');
+            console.log('=== フィルター適用開始 ===');
             
             const selectedDepartments = Array.from(
                 document.querySelectorAll('#departmentFilters input:checked')
@@ -323,22 +347,58 @@
             console.log('選択された請求先:', selectedDepartments);
             console.log('選択された決済種別:', selectedPayments);
             
+            // 修正されたフィルターロジック
             const filteredData = allData.filter(row => {
-                return selectedDepartments.includes(row.請求先) &&
-                       selectedPayments.includes(row.決済種別);
+                // 請求先の条件チェック（選択されていない場合は空配列になるため、すべて表示）
+                const departmentMatch = selectedDepartments.length === 0 || selectedDepartments.includes(row.請求先);
+                
+                // 決済種別の条件チェック（選択されていない場合は空配列になるため、すべて表示）
+                const paymentMatch = selectedPayments.length === 0 || selectedPayments.includes(row.決済種別);
+                
+                console.log(`行チェック - 請求先: "${row.請求先}", 決済種別: "${row.決済種別}", 請求先マッチ: ${departmentMatch}, 決済種別マッチ: ${paymentMatch}`);
+                
+                return departmentMatch && paymentMatch;
             });
             
             console.log('フィルター後のデータ件数:', filteredData.length);
+            console.log('フィルター後のデータ:', filteredData);
+            
+            // デバッグ情報更新
+            const debugInfo = `
+                <strong>フィルター適用結果:</strong><br>
+                • 選択された請求先: ${selectedDepartments.length > 0 ? selectedDepartments.join(', ') : '（すべて）'}<br>
+                • 選択された決済種別: ${selectedPayments.length > 0 ? selectedPayments.join(', ') : '（すべて）'}<br>
+                • フィルター前: ${allData.length}件<br>
+                • フィルター後: ${filteredData.length}件<br>
+                <br>
+                <strong>表示されるデータ:</strong><br>
+                ${filteredData.slice(0, 5).map(row => 
+                    `${row.日付} - ${row.請求先} - ${row.決済種別} - ${row.合計金額}円`
+                ).join('<br>')}
+                ${filteredData.length > 5 ? '<br>...' : ''}
+            `;
+            updateDebugInfo(debugInfo);
+            
             updateSummaryAndTable(filteredData);
         }
         
         function resetFilters() {
-            console.log('フィルターリセット');
+            console.log('=== フィルターリセット ===');
             
+            // すべてのチェックボックスをチェック状態に
             const checkboxes = document.querySelectorAll('#filterSection input[type="checkbox"]');
             checkboxes.forEach(cb => cb.checked = true);
             
+            // 全データを表示
             updateSummaryAndTable(allData);
+            
+            // デバッグ情報更新
+            const debugInfo = `
+                <strong>フィルターリセット完了:</strong><br>
+                • すべてのフィルターが選択状態に戻りました<br>
+                • 全${allData.length}件のデータを表示中
+            `;
+            updateDebugInfo(debugInfo);
         }
         
         // 接続テスト
@@ -376,7 +436,7 @@
                 
             } catch (error) {
                 console.error('メインエラー:', error);
-                document.getElementById('status').innerHTML = `<span class="error">❌ 接続失敗: ${error.message}</span>`;
+                document.getElementById('status').innerHTML = `<span class="error">❌ 接続失敗: ${error.message}</span>';
             }
         });
         
