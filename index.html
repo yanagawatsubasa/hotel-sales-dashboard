@@ -1,4 +1,4 @@
-        <div class="section">
+<div class="section">
             <div class="status" id="status">
                 <span class="loading">Supabaseに接続中...</span>
             </div>
@@ -242,6 +242,134 @@
                 }
             }
         });
+        
+        // グローバル変数
+        let allData = [];
+        let filteredData = [];
+        
+        // データ表示関数
+        function displayData(data) {
+            allData = data; // 全データを保存
+            filteredData = data; // フィルタ済みデータを保存
+            
+            // フィルターセクションを表示
+            setupFilters(data);
+            document.getElementById('filterSection').style.display = 'block';
+            
+            // サマリー計算
+            updateSummaryAndTable(data);
+        }
+        
+        // フィルター設定
+        function setupFilters(data) {
+            // 部門フィルター
+            const departments = [...new Set(data.map(row => row.請求先).filter(d => d))];
+            const departmentContainer = document.getElementById('departmentFilters');
+            departmentContainer.innerHTML = '';
+            
+            departments.forEach(dept => {
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <label style="display: flex; align-items: center; margin-bottom: 5px; font-size: 0.9em;">
+                        <input type="checkbox" checked style="margin-right: 8px;" value="${dept}">
+                        ${dept}
+                    </label>
+                `;
+                departmentContainer.appendChild(div);
+            });
+            
+            // 店舗フィルター
+            const stores = [...new Set(data.map(row => row.店舗名).filter(s => s))];
+            const storeContainer = document.getElementById('storeFilters');
+            storeContainer.innerHTML = '';
+            
+            stores.forEach(store => {
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <label style="display: flex; align-items: center; margin-bottom: 5px; font-size: 0.9em;">
+                        <input type="checkbox" checked style="margin-right: 8px;" value="${store}">
+                        ${store}
+                    </label>
+                `;
+                storeContainer.appendChild(div);
+            });
+            
+            // 決済種別フィルター
+            const payments = [...new Set(data.map(row => row.決済種別).filter(p => p))];
+            const paymentContainer = document.getElementById('paymentFilters');
+            paymentContainer.innerHTML = '';
+            
+            payments.forEach(payment => {
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <label style="display: flex; align-items: center; margin-bottom: 5px; font-size: 0.9em;">
+                        <input type="checkbox" checked style="margin-right: 8px;" value="${payment}">
+                        ${payment}
+                    </label>
+                `;
+                paymentContainer.appendChild(div);
+            });
+        }
+        
+        // サマリーとテーブル更新
+        function updateSummaryAndTable(data) {
+            // サマリー計算
+            const totalCount = data.length;
+            const totalSales = data.reduce((sum, row) => sum + (row.合計金額 || 0), 0);
+            
+            // 日付範囲計算
+            const dates = data.map(row => row.日付).filter(date => date).sort();
+            const dateRange = dates.length > 0 ? `${dates[0]} 〜 ${dates[dates.length - 1]}` : '-';
+            
+            // サマリー表示
+            document.getElementById('totalCount').textContent = totalCount.toLocaleString();
+            document.getElementById('totalSales').textContent = totalSales.toLocaleString() + '円';
+            document.getElementById('dateRange').textContent = dateRange;
+            
+            // テーブル表示
+            const tbody = document.getElementById('dataTableBody');
+            tbody.innerHTML = '';
+            
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="padding: 8px; border: 1px solid #dee2e6;">${row.日付 || '-'}</td>
+                    <td style="padding: 8px; border: 1px solid #dee2e6;">${row.店舗名 || '-'}</td>
+                    <td style="padding: 8px; border: 1px solid #dee2e6;">${row.請求先 || '-'}</td>
+                    <td style="padding: 8px; border: 1px solid #dee2e6;">${(row.合計金額 || 0).toLocaleString()}円</td>
+                    <td style="padding: 8px; border: 1px solid #dee2e6;">${row.決済種別 || '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        
+        // フィルター関数
+        function selectAllDepartments() {
+            document.querySelectorAll('#departmentFilters input[type="checkbox"]').forEach(cb => cb.checked = true);
+        }
+        
+        function deselectAllDepartments() {
+            document.querySelectorAll('#departmentFilters input[type="checkbox"]').forEach(cb => cb.checked = false);
+        }
+        
+        function applyFilters() {
+            const selectedDepartments = Array.from(document.querySelectorAll('#departmentFilters input:checked')).map(cb => cb.value);
+            const selectedStores = Array.from(document.querySelectorAll('#storeFilters input:checked')).map(cb => cb.value);
+            const selectedPayments = Array.from(document.querySelectorAll('#paymentFilters input:checked')).map(cb => cb.value);
+            
+            filteredData = allData.filter(row => {
+                return selectedDepartments.includes(row.請求先) &&
+                       selectedStores.includes(row.店舗名) &&
+                       selectedPayments.includes(row.決済種別);
+            });
+            
+            updateSummaryAndTable(filteredData);
+        }
+        
+        function resetFilters() {
+            document.querySelectorAll('#filterSection input[type="checkbox"]').forEach(cb => cb.checked = true);
+            updateSummaryAndTable(allData);
+        }
         
         // データ表示関数
         function displayData(data) {
