@@ -150,8 +150,30 @@
                     </tbody>
                 </table>
             </div>
+        <div class="section" id="filterSection" style="display: none;">
+            <h2 style="margin-bottom: 20px; color: #2c3e50;">🔍 フィルター</h2>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                    <h3 style="margin-bottom: 15px; color: #2c3e50; font-size: 1em;">🏢 請求先</h3>
+                    <div id="departmentFilters" style="max-height: 150px; overflow-y: auto;"></div>
+                    <div style="margin-top: 10px;">
+                        <button onclick="selectAllDepartments()" style="background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.8em; margin-right: 5px; cursor: pointer;">全選択</button>
+                        <button onclick="deselectAllDepartments()" style="background: #6c757d; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.8em; cursor: pointer;">全解除</button>
+                    </div>
+                </div>
+                
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                    <h3 style="margin-bottom: 15px; color: #2c3e50; font-size: 1em;">💳 決済種別</h3>
+                    <div id="paymentFilters"></div>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 20px;">
+                <button onclick="applyFilters()" style="background: #007bff; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 1em; cursor: pointer;">フィルター適用</button>
+                <button onclick="resetFilters()" style="background: #6c757d; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 1em; cursor: pointer; margin-left: 10px;">リセット</button>
+            </div>
         </div>
-    </div>
 
     <script>
         console.log('=== スクリプト開始 ===');
@@ -161,9 +183,13 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlwb2hxZ2NmZGNkeWt2bGFuaGdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAyODg5NTgsImV4cCI6MjA2NTg2NDk1OH0.RMaAA4tFQC5rvQ49qy13F2-2cJslTQwIT1jxYGcSqXc';
         
         // データ表示関数を先に定義
+        let allData = []; // グローバル変数として追加
+        
         function displayData(data) {
             console.log('=== displayData関数実行開始 ===');
             console.log('受信データ:', data);
+            
+            allData = data; // グローバル変数に保存
             
             try {
                 // サマリー計算
@@ -182,31 +208,11 @@
                 console.log('日付範囲:', dateRange);
                 
                 // DOM更新
-                const totalCountEl = document.getElementById('totalCount');
-                const totalSalesEl = document.getElementById('totalSales');
-                const dateRangeEl = document.getElementById('dateRange');
+                updateSummaryAndTable(data);
                 
-                if (totalCountEl) totalCountEl.textContent = totalCount.toLocaleString();
-                if (totalSalesEl) totalSalesEl.textContent = totalSales.toLocaleString() + '円';
-                if (dateRangeEl) dateRangeEl.textContent = dateRange;
-                
-                // テーブル表示
-                const tbody = document.getElementById('dataTableBody');
-                if (tbody) {
-                    tbody.innerHTML = '';
-                    
-                    data.forEach(row => {
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td>${row.日付 || '-'}</td>
-                            <td>${row.店舗名 || '-'}</td>
-                            <td>${row.請求先 || '-'}</td>
-                            <td>${(row.合計金額 || 0).toLocaleString()}円</td>
-                            <td>${row.決済種別 || '-'}</td>
-                        `;
-                        tbody.appendChild(tr);
-                    });
-                }
+                // フィルター設定
+                setupFilters(data);
+                document.getElementById('filterSection').style.display = 'block';
                 
                 // データセクション表示
                 const dataSection = document.getElementById('dataSection');
@@ -219,6 +225,120 @@
             } catch (error) {
                 console.error('displayData関数内でエラー:', error);
             }
+        }
+        
+        function updateSummaryAndTable(data) {
+            // サマリー更新
+            const totalCount = data.length;
+            const totalSales = data.reduce((sum, row) => sum + (row.合計金額 || 0), 0);
+            const dates = data.map(row => row.日付).filter(date => date).sort();
+            const dateRange = dates.length > 0 ? `${dates[0]} 〜 ${dates[dates.length - 1]}` : '-';
+            
+            const totalCountEl = document.getElementById('totalCount');
+            const totalSalesEl = document.getElementById('totalSales');
+            const dateRangeEl = document.getElementById('dateRange');
+            
+            if (totalCountEl) totalCountEl.textContent = totalCount.toLocaleString();
+            if (totalSalesEl) totalSalesEl.textContent = totalSales.toLocaleString() + '円';
+            if (dateRangeEl) dateRangeEl.textContent = dateRange;
+            
+            // テーブル更新
+            const tbody = document.getElementById('dataTableBody');
+            if (tbody) {
+                tbody.innerHTML = '';
+                
+                data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${row.日付 || '-'}</td>
+                        <td>${row.店舗名 || '-'}</td>
+                        <td>${row.請求先 || '-'}</td>
+                        <td>${(row.合計金額 || 0).toLocaleString()}円</td>
+                        <td>${row.決済種別 || '-'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+        
+        function setupFilters(data) {
+            // 請求先フィルター
+            const departments = [...new Set(data.map(row => row.請求先).filter(d => d))];
+            const departmentContainer = document.getElementById('departmentFilters');
+            if (departmentContainer) {
+                departmentContainer.innerHTML = '';
+                
+                departments.forEach(dept => {
+                    const div = document.createElement('div');
+                    div.innerHTML = `
+                        <label style="display: flex; align-items: center; margin-bottom: 5px; font-size: 0.9em; cursor: pointer;">
+                            <input type="checkbox" checked style="margin-right: 8px;" value="${dept}">
+                            ${dept}
+                        </label>
+                    `;
+                    departmentContainer.appendChild(div);
+                });
+            }
+            
+            // 決済種別フィルター
+            const payments = [...new Set(data.map(row => row.決済種別).filter(p => p))];
+            const paymentContainer = document.getElementById('paymentFilters');
+            if (paymentContainer) {
+                paymentContainer.innerHTML = '';
+                
+                payments.forEach(payment => {
+                    const div = document.createElement('div');
+                    div.innerHTML = `
+                        <label style="display: flex; align-items: center; margin-bottom: 5px; font-size: 0.9em; cursor: pointer;">
+                            <input type="checkbox" checked style="margin-right: 8px;" value="${payment}">
+                            ${payment}
+                        </label>
+                    `;
+                    paymentContainer.appendChild(div);
+                });
+            }
+        }
+        
+        function selectAllDepartments() {
+            const checkboxes = document.querySelectorAll('#departmentFilters input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = true);
+        }
+        
+        function deselectAllDepartments() {
+            const checkboxes = document.querySelectorAll('#departmentFilters input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = false);
+        }
+        
+        function applyFilters() {
+            console.log('フィルター適用開始');
+            
+            const selectedDepartments = Array.from(
+                document.querySelectorAll('#departmentFilters input:checked')
+            ).map(cb => cb.value);
+            
+            const selectedPayments = Array.from(
+                document.querySelectorAll('#paymentFilters input:checked')
+            ).map(cb => cb.value);
+            
+            console.log('選択された請求先:', selectedDepartments);
+            console.log('選択された決済種別:', selectedPayments);
+            
+            const filteredData = allData.filter(row => {
+                return selectedDepartments.includes(row.請求先) &&
+                       selectedPayments.includes(row.決済種別);
+            });
+            
+            console.log('フィルター後のデータ件数:', filteredData.length);
+            updateSummaryAndTable(filteredData);
+        }
+        
+        function resetFilters() {
+            console.log('フィルターリセット');
+            
+            const checkboxes = document.querySelectorAll('#filterSection input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = true);
+            
+            updateSummaryAndTable(allData);
         }
         
         // 接続テスト
