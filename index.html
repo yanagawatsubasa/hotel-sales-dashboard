@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ホテル売上管理ダッシュボード</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 15px 15px 0 0;
+        }
+        
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .section {
+            padding: 30px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .section:last-child {
+            border-bottom: none;
+            border-radius: 0 0 15px 15px;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 20px;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+        
+        .loading { color: #007bff; }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .summary-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .summary-card h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+        
+        .summary-card .value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏨 ホテル売上管理ダッシュボード</h1>
+            <p>Supabase連携版 - ホスティング環境</p>
+        </div>
+        
+        <div class="section">
+            <div class="status" id="status">
+                <span class="loading">Supabaseに接続中...</span>
+            </div>
+        </div>
+        
+        <div class="section" id="dataSection" style="display: none;">
+            <h2 style="margin-bottom: 20px; color: #2c3e50;">📊 売上データ</h2>
+            
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <h3>総データ件数</h3>
+                    <div class="value" id="totalCount">-</div>
+                </div>
+                <div class="summary-card">
+                    <h3>総売上金額</h3>
+                    <div class="value" id="totalSales">-</div>
+                </div>
+                <div class="summary-card">
+                    <h3>データ期間</h3>
+                    <div class="value" id="dateRange">-</div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 30px; max-height: 400px; overflow-y: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                    <thead>
+                        <tr style="background: #f8f9fa;">
+                            <th style="padding: 10px; border: 1px solid #dee2e6;">日付</th>
+                            <th style="padding: 10px; border: 1px solid #dee2e6;">店舗名</th>
+                            <th style="padding: 10px; border: 1px solid #dee2e6;">請求先</th>
+                            <th style="padding: 10px; border: 1px solid #dee2e6;">合計金額</th>
+                            <th style="padding: 10px; border: 1px solid #dee2e6;">決済種別</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Supabase設定
+        const SUPABASE_URL = 'https://ypohqgcfdcdykvlanhgf.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlwb2hxZ2NmZGNkeWt2bGFuaGdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAyODg5NTgsImV4cCI6MjA2NTg2NDk1OH0.RMaAA4tFQC5rvQ49qy13F2-2cJslTQwIT1jxYGcSqXc';
+        
+        // 接続テスト
+        window.addEventListener('load', async function() {
+            try {
+                document.getElementById('status').innerHTML = '<span class="loading">データベースからデータを取得中...</span>';
+                
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/sales_data`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('データ取得成功:', data);
+                    
+                    if (data.length > 0) {
+                        document.getElementById('status').innerHTML = `<span class="success">✅ ${data.length}件のデータを取得しました</span>`;
+                        displayData(data);
+                        document.getElementById('dataSection').style.display = 'block';
+                    } else {
+                        document.getElementById('status').innerHTML = '<span class="success">✅ 接続成功（データは空）</span>';
+                    }
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+            } catch (error) {
+                console.error('エラー:', error);
+                document.getElementById('status').innerHTML = `<span class="error">❌ 接続失敗: ${error.message}</span>`;
+            }
+        });
+        
+        // データ表示関数
+        function displayData(data) {
+            // サマリー計算
+            const totalCount = data.length;
+            const totalSales = data.reduce((sum, row) => sum + (row.合計金額 || 0), 0);
+            
+            // 日付範囲計算
+            const dates = data.map(row => row.日付).filter(date => date).sort();
+            const dateRange = dates.length > 0 ? `${dates[0]} 〜 ${dates[dates.length - 1]}` : '-';
+            
+            // サマリー表示
+            document.getElementById('totalCount').textContent = totalCount.toLocaleString();
+            document.getElementById('totalSales').textContent = totalSales.toLocaleString() + '円';
+            document.getElementById('dateRange').textContent = dateRange;
+            
+            // テーブル表示
+            const tbody = document.getElementById('dataTableBody');
+            tbody.innerHTML = '';
+            
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="padding: 8px; border: 1px solid #dee2e6;">${row.日付 || '-'}</td>
+                    <td style="padding: 8px; border: 1px solid #dee2e6;">${row.店舗名 || '-'}</td>
+                    <td style="padding: 8px; border: 1px solid #dee2e6;">${row.請求先 || '-'}</td>
+                    <td style="padding: 8px; border: 1px solid #dee2e6;">${(row.合計金額 || 0).toLocaleString()}円</td>
+                    <td style="padding: 8px; border: 1px solid #dee2e6;">${row.決済種別 || '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    </script>
+</body>
+</html>
