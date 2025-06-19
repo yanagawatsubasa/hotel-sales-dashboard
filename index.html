@@ -1,13 +1,9 @@
-<div class="section">
-            <div class="status" id="status">
-                <span class="loading">Supabaseに接続中...</span>
-            </div>
-        </div><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>売上ダッシュボード</title>
+    <title>ホテル売上管理ダッシュボード</title>
     <style>
         * {
             margin: 0;
@@ -54,6 +50,17 @@
             border-radius: 0 0 15px 15px;
         }
         
+        .status {
+            text-align: center;
+            padding: 20px;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+        
+        .loading { color: #007bff; }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        
         .summary-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -80,47 +87,37 @@
             color: #007bff;
         }
         
-        .loading { color: #007bff; }
-        .success { color: #28a745; }
-        .error { color: #dc3545; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+        
+        th, td {
+            padding: 8px;
+            border: 1px solid #dee2e6;
+            text-align: left;
+        }
+        
+        th {
+            background: #f8f9fa;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>🏨 ホテル売上管理ダッシュボード</h1>
-            <p>Supabase連携版</p>
+            <p>Supabase連携版 - デバッグ</p>
         </div>
         
-        <div class="section" id="filterSection" style="display: none;">
-            <h2 style="margin-bottom: 20px; color: #2c3e50;">🔍 フィルター</h2>
-            
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
-                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
-                    <h3 style="margin-bottom: 15px; color: #2c3e50; font-size: 1em;">🏢 部門・請求先</h3>
-                    <div id="departmentFilters" style="max-height: 150px; overflow-y: auto;"></div>
-                    <div style="margin-top: 10px;">
-                        <button onclick="selectAllDepartments()" style="background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.8em; margin-right: 5px;">全選択</button>
-                        <button onclick="deselectAllDepartments()" style="background: #6c757d; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.8em;">全解除</button>
-                    </div>
-                </div>
-                
-                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
-                    <h3 style="margin-bottom: 15px; color: #2c3e50; font-size: 1em;">🏪 店舗</h3>
-                    <div id="storeFilters"></div>
-                </div>
-                
-                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
-                    <h3 style="margin-bottom: 15px; color: #2c3e50; font-size: 1em;">💳 決済種別</h3>
-                    <div id="paymentFilters"></div>
-                </div>
-            </div>
-            
-            <div style="text-align: center; margin-top: 20px;">
-                <button onclick="applyFilters()" style="background: #007bff; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 1em; cursor: pointer;">フィルター適用</button>
-                <button onclick="resetFilters()" style="background: #6c757d; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 1em; cursor: pointer; margin-left: 10px;">リセット</button>
+        <div class="section">
+            <div class="status" id="status">
+                <span class="loading">デバッグモードで接続中...</span>
             </div>
         </div>
+        
+        <div class="section" id="dataSection" style="display: none;">
             <h2 style="margin-bottom: 20px; color: #2c3e50;">📊 売上データ</h2>
             
             <div class="summary-grid">
@@ -139,14 +136,14 @@
             </div>
             
             <div style="margin-top: 30px; max-height: 400px; overflow-y: auto;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                <table>
                     <thead>
-                        <tr style="background: #f8f9fa;">
-                            <th style="padding: 10px; border: 1px solid #dee2e6;">日付</th>
-                            <th style="padding: 10px; border: 1px solid #dee2e6;">店舗名</th>
-                            <th style="padding: 10px; border: 1px solid #dee2e6;">請求先</th>
-                            <th style="padding: 10px; border: 1px solid #dee2e6;">合計金額</th>
-                            <th style="padding: 10px; border: 1px solid #dee2e6;">決済種別</th>
+                        <tr>
+                            <th>日付</th>
+                            <th>店舗名</th>
+                            <th>請求先</th>
+                            <th>合計金額</th>
+                            <th>決済種別</th>
                         </tr>
                     </thead>
                     <tbody id="dataTableBody">
@@ -157,251 +154,113 @@
     </div>
 
     <script>
+        console.log('=== スクリプト開始 ===');
+        
         // Supabase設定
         const SUPABASE_URL = 'https://ypohqgcfdcdykvlanhgf.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlwb2hxZ2NmZGNkeWt2bGFuaGdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAyODg5NTgsImV4cCI6MjA2NTg2NDk1OH0.RMaAA4tFQC5rvQ49qy13F2-2cJslTQwIT1jxYGcSqXc';
         
+        // データ表示関数を先に定義
+        function displayData(data) {
+            console.log('=== displayData関数実行開始 ===');
+            console.log('受信データ:', data);
+            
+            try {
+                // サマリー計算
+                const totalCount = data.length;
+                console.log('総件数:', totalCount);
+                
+                const totalSales = data.reduce((sum, row) => {
+                    const amount = row.合計金額 || 0;
+                    return sum + amount;
+                }, 0);
+                console.log('総売上:', totalSales);
+                
+                // 日付範囲計算
+                const dates = data.map(row => row.日付).filter(date => date).sort();
+                const dateRange = dates.length > 0 ? `${dates[0]} 〜 ${dates[dates.length - 1]}` : '-';
+                console.log('日付範囲:', dateRange);
+                
+                // DOM更新
+                const totalCountEl = document.getElementById('totalCount');
+                const totalSalesEl = document.getElementById('totalSales');
+                const dateRangeEl = document.getElementById('dateRange');
+                
+                if (totalCountEl) totalCountEl.textContent = totalCount.toLocaleString();
+                if (totalSalesEl) totalSalesEl.textContent = totalSales.toLocaleString() + '円';
+                if (dateRangeEl) dateRangeEl.textContent = dateRange;
+                
+                // テーブル表示
+                const tbody = document.getElementById('dataTableBody');
+                if (tbody) {
+                    tbody.innerHTML = '';
+                    
+                    data.forEach(row => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${row.日付 || '-'}</td>
+                            <td>${row.店舗名 || '-'}</td>
+                            <td>${row.請求先 || '-'}</td>
+                            <td>${(row.合計金額 || 0).toLocaleString()}円</td>
+                            <td>${row.決済種別 || '-'}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+                
+                // データセクション表示
+                const dataSection = document.getElementById('dataSection');
+                if (dataSection) {
+                    dataSection.style.display = 'block';
+                }
+                
+                console.log('=== displayData関数実行完了 ===');
+                
+            } catch (error) {
+                console.error('displayData関数内でエラー:', error);
+            }
+        }
+        
         // 接続テスト
         window.addEventListener('load', async function() {
-            document.getElementById('status').innerHTML = '<span class="loading">基本的な接続テスト中...</span>';
+            console.log('=== ページ読み込み完了 ===');
             
-            // 1. まず最も単純なリクエスト
             try {
-                console.log('=== 基本テスト開始 ===');
+                document.getElementById('status').innerHTML = '<span class="loading">データベースからデータを取得中...</span>';
                 
-                // 最も単純なGETリクエスト
-                const testUrl = `${SUPABASE_URL}/rest/v1/sales_data?apikey=${SUPABASE_ANON_KEY}&limit=1`;
-                console.log('テストURL:', testUrl);
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/sales_data`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
                 
-                const response = await fetch(testUrl);
                 console.log('レスポンス受信:', response.status);
                 
                 if (response.ok) {
                     const data = await response.json();
-                    console.log('データ取得成功:', data);
+                    console.log('データ取得成功:', data.length, '件');
                     
                     if (data.length > 0) {
-                        document.getElementById('status').innerHTML = `<span class="success">✅ 接続成功！${data.length}件のデータを取得</span>`;
+                        document.getElementById('status').innerHTML = `<span class="success">✅ ${data.length}件のデータを取得しました</span>`;
                         
-                        // データ表示
+                        console.log('displayData関数を呼び出し中...');
                         displayData(data);
-                        document.getElementById('dataSection').style.display = 'block';
+                        
                     } else {
-                        document.getElementById('status').innerHTML = '<span class="success">✅ 接続成功！（データは空）</span>';
+                        document.getElementById('status').innerHTML = '<span class="success">✅ 接続成功（データは空）</span>';
                     }
                 } else {
-                    const errorText = await response.text();
-                    console.log('エラーレスポンス:', errorText);
-                    document.getElementById('status').innerHTML = `<span class="error">❌ HTTPエラー: ${response.status}</span>`;
+                    throw new Error(`HTTP ${response.status}`);
                 }
                 
-            } catch (fetchError) {
-                console.error('Fetchエラー:', fetchError);
-                
-                // フォールバック: JSONPライクなアプローチ
-                try {
-                    console.log('=== フォールバック: script tag方式 ===');
-                    
-                    document.getElementById('status').innerHTML = '<span class="loading">代替方法でテスト中...</span>';
-                    
-                    // iframe を使った方式
-                    const iframe = document.createElement('iframe');
-                    iframe.style.display = 'none';
-                    iframe.src = `${SUPABASE_URL}/rest/v1/sales_data?apikey=${SUPABASE_ANON_KEY}&limit=1`;
-                    
-                    iframe.onload = function() {
-                        setTimeout(() => {
-                            document.getElementById('status').innerHTML = '<span class="success">✅ 代替方法で接続確認</span>';
-                            document.body.removeChild(iframe);
-                        }, 1000);
-                    };
-                    
-                    iframe.onerror = function() {
-                        document.getElementById('status').innerHTML = '<span class="error">❌ 全ての接続方法が失敗</span>';
-                        document.body.removeChild(iframe);
-                    };
-                    
-                    document.body.appendChild(iframe);
-                    
-                } catch (iframeError) {
-                    console.error('iframe方式も失敗:', iframeError);
-                    
-                    // 最終フォールバック: 手動でテストURLを表示
-                    document.getElementById('status').innerHTML = `
-                        <span class="error">❌ 自動接続失敗</span><br>
-                        <small style="color: #666; margin-top: 10px; display: block;">
-                        手動テスト用URL:<br>
-                        <a href="${SUPABASE_URL}/rest/v1/sales_data?apikey=${SUPABASE_ANON_KEY}&limit=1" 
-                           target="_blank" 
-                           style="color: #007bff; word-break: break-all;">
-                           ${SUPABASE_URL}/rest/v1/sales_data?apikey=${SUPABASE_ANON_KEY.substring(0, 20)}...
-                        </a><br>
-                        ↑このリンクをクリックして手動でテストしてください
-                        </small>
-                    `;
-                }
+            } catch (error) {
+                console.error('メインエラー:', error);
+                document.getElementById('status').innerHTML = `<span class="error">❌ 接続失敗: ${error.message}</span>`;
             }
         });
         
-        // グローバル変数
-        let allData = [];
-        let filteredData = [];
-        
-        // データ表示関数
-        function displayData(data) {
-            allData = data; // 全データを保存
-            filteredData = data; // フィルタ済みデータを保存
-            
-            // フィルターセクションを表示
-            setupFilters(data);
-            document.getElementById('filterSection').style.display = 'block';
-            
-            // サマリー計算
-            updateSummaryAndTable(data);
-        }
-        
-        // フィルター設定
-        function setupFilters(data) {
-            // 部門フィルター
-            const departments = [...new Set(data.map(row => row.請求先).filter(d => d))];
-            const departmentContainer = document.getElementById('departmentFilters');
-            departmentContainer.innerHTML = '';
-            
-            departments.forEach(dept => {
-                const div = document.createElement('div');
-                div.innerHTML = `
-                    <label style="display: flex; align-items: center; margin-bottom: 5px; font-size: 0.9em;">
-                        <input type="checkbox" checked style="margin-right: 8px;" value="${dept}">
-                        ${dept}
-                    </label>
-                `;
-                departmentContainer.appendChild(div);
-            });
-            
-            // 店舗フィルター
-            const stores = [...new Set(data.map(row => row.店舗名).filter(s => s))];
-            const storeContainer = document.getElementById('storeFilters');
-            storeContainer.innerHTML = '';
-            
-            stores.forEach(store => {
-                const div = document.createElement('div');
-                div.innerHTML = `
-                    <label style="display: flex; align-items: center; margin-bottom: 5px; font-size: 0.9em;">
-                        <input type="checkbox" checked style="margin-right: 8px;" value="${store}">
-                        ${store}
-                    </label>
-                `;
-                storeContainer.appendChild(div);
-            });
-            
-            // 決済種別フィルター
-            const payments = [...new Set(data.map(row => row.決済種別).filter(p => p))];
-            const paymentContainer = document.getElementById('paymentFilters');
-            paymentContainer.innerHTML = '';
-            
-            payments.forEach(payment => {
-                const div = document.createElement('div');
-                div.innerHTML = `
-                    <label style="display: flex; align-items: center; margin-bottom: 5px; font-size: 0.9em;">
-                        <input type="checkbox" checked style="margin-right: 8px;" value="${payment}">
-                        ${payment}
-                    </label>
-                `;
-                paymentContainer.appendChild(div);
-            });
-        }
-        
-        // サマリーとテーブル更新
-        function updateSummaryAndTable(data) {
-            // サマリー計算
-            const totalCount = data.length;
-            const totalSales = data.reduce((sum, row) => sum + (row.合計金額 || 0), 0);
-            
-            // 日付範囲計算
-            const dates = data.map(row => row.日付).filter(date => date).sort();
-            const dateRange = dates.length > 0 ? `${dates[0]} 〜 ${dates[dates.length - 1]}` : '-';
-            
-            // サマリー表示
-            document.getElementById('totalCount').textContent = totalCount.toLocaleString();
-            document.getElementById('totalSales').textContent = totalSales.toLocaleString() + '円';
-            document.getElementById('dateRange').textContent = dateRange;
-            
-            // テーブル表示
-            const tbody = document.getElementById('dataTableBody');
-            tbody.innerHTML = '';
-            
-            data.forEach(row => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td style="padding: 8px; border: 1px solid #dee2e6;">${row.日付 || '-'}</td>
-                    <td style="padding: 8px; border: 1px solid #dee2e6;">${row.店舗名 || '-'}</td>
-                    <td style="padding: 8px; border: 1px solid #dee2e6;">${row.請求先 || '-'}</td>
-                    <td style="padding: 8px; border: 1px solid #dee2e6;">${(row.合計金額 || 0).toLocaleString()}円</td>
-                    <td style="padding: 8px; border: 1px solid #dee2e6;">${row.決済種別 || '-'}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-        
-        // フィルター関数
-        function selectAllDepartments() {
-            document.querySelectorAll('#departmentFilters input[type="checkbox"]').forEach(cb => cb.checked = true);
-        }
-        
-        function deselectAllDepartments() {
-            document.querySelectorAll('#departmentFilters input[type="checkbox"]').forEach(cb => cb.checked = false);
-        }
-        
-        function applyFilters() {
-            const selectedDepartments = Array.from(document.querySelectorAll('#departmentFilters input:checked')).map(cb => cb.value);
-            const selectedStores = Array.from(document.querySelectorAll('#storeFilters input:checked')).map(cb => cb.value);
-            const selectedPayments = Array.from(document.querySelectorAll('#paymentFilters input:checked')).map(cb => cb.value);
-            
-            filteredData = allData.filter(row => {
-                return selectedDepartments.includes(row.請求先) &&
-                       selectedStores.includes(row.店舗名) &&
-                       selectedPayments.includes(row.決済種別);
-            });
-            
-            updateSummaryAndTable(filteredData);
-        }
-        
-        function resetFilters() {
-            document.querySelectorAll('#filterSection input[type="checkbox"]').forEach(cb => cb.checked = true);
-            updateSummaryAndTable(allData);
-        }
-        
-        // データ表示関数
-        function displayData(data) {
-            // サマリー計算
-            const totalCount = data.length;
-            const totalSales = data.reduce((sum, row) => sum + (row.合計金額 || 0), 0);
-            
-            // 日付範囲計算
-            const dates = data.map(row => row.日付).filter(date => date).sort();
-            const dateRange = dates.length > 0 ? `${dates[0]} 〜 ${dates[dates.length - 1]}` : '-';
-            
-            // サマリー表示
-            document.getElementById('totalCount').textContent = totalCount.toLocaleString();
-            document.getElementById('totalSales').textContent = totalSales.toLocaleString() + '円';
-            document.getElementById('dateRange').textContent = dateRange;
-            
-            // テーブル表示
-            const tbody = document.getElementById('dataTableBody');
-            tbody.innerHTML = '';
-            
-            data.forEach(row => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td style="padding: 8px; border: 1px solid #dee2e6;">${row.日付 || '-'}</td>
-                    <td style="padding: 8px; border: 1px solid #dee2e6;">${row.店舗名 || '-'}</td>
-                    <td style="padding: 8px; border: 1px solid #dee2e6;">${row.請求先 || '-'}</td>
-                    <td style="padding: 8px; border: 1px solid #dee2e6;">${(row.合計金額 || 0).toLocaleString()}円</td>
-                    <td style="padding: 8px; border: 1px solid #dee2e6;">${row.決済種別 || '-'}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
+        console.log('=== スクリプト読み込み完了 ===');
     </script>
 </body>
 </html>
