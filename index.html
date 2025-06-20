@@ -19,7 +19,7 @@
         }
         
         .container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
             background: white;
             border-radius: 15px;
@@ -118,7 +118,6 @@
         /* テーブルスタイル */
         .table-container {
             margin-top: 30px;
-            height: 500px;
             border: 1px solid #dee2e6;
             border-radius: 8px;
             overflow: hidden;
@@ -126,21 +125,24 @@
         }
 
         .table-wrapper {
-            height: 100%;
-            overflow: auto;
+            max-height: 600px;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.85em;
-            min-width: 1200px;
+            table-layout: fixed;
         }
         
         th, td {
             padding: 8px 6px;
             border: 1px solid #dee2e6;
             text-align: left;
+            overflow: hidden;
+            text-overflow: ellipsis;
             white-space: nowrap;
         }
         
@@ -175,18 +177,87 @@
         }
 
         /* 列幅調整 */
-        .col-date { width: 90px; }
-        .col-time { width: 70px; }
-        .col-store { width: 100px; }
-        .col-department { width: 120px; }
-        .col-amount { width: 90px; }
-        .col-payment { width: 80px; }
-        .col-slip { width: 80px; }
-        .col-product { width: 150px; }
-        .col-price { width: 80px; }
-        .col-qty { width: 60px; }
-        .col-discount { width: 80px; }
-        .col-tax { width: 80px; }
+        .col-no { width: 60px; }
+        .col-date { width: 100px; }
+        .col-time { width: 80px; }
+        .col-store { width: 120px; }
+        .col-department { width: 140px; }
+        .col-amount { width: 100px; }
+        .col-payment { width: 100px; }
+        .col-slip { width: 100px; }
+        .col-product { width: 200px; }
+        .col-price { width: 90px; }
+        .col-qty { width: 70px; }
+        .col-discount { width: 90px; }
+        .col-tax { width: 90px; }
+
+        /* ページネーションスタイル */
+        .pagination-container {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .pagination-info {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pagination-controls button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .pagination-controls button:hover {
+            background: #0056b3;
+        }
+
+        .pagination-controls button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .pagination-controls select {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+
+        .pagination-controls input {
+            width: 60px;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .table-footer {
+            background: #f8f9fa;
+            padding: 10px 20px;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            justify-content: flex-end;
+            font-size: 0.9em;
+            color: #495057;
+        }
 
         /* フィルタースタイル */
         .filter-grid {
@@ -287,12 +358,12 @@
     <div class="container">
         <div class="header">
             <h1>🏨 ホテル売上管理ダッシュボード</h1>
-            <p>拡張版 - 期間設定・ソート・詳細フィルター対応</p>
+            <p>ページネーション対応版 - 500件ずつ表示</p>
         </div>
         
         <div class="section">
             <div class="status" id="status">
-                <span class="loading">デバッグモードで接続中...</span>
+                <span class="loading">データベースからデータを取得中...</span>
             </div>
         </div>
         
@@ -337,6 +408,7 @@
                     <table>
                         <thead>
                             <tr>
+                                <th class="col-no">No.</th>
                                 <th class="sortable col-date" data-column="日付">日付</th>
                                 <th class="sortable col-time" data-column="時間">時間</th>
                                 <th class="sortable col-store" data-column="店舗名">店舗名</th>
@@ -354,6 +426,37 @@
                         <tbody id="dataTableBody">
                         </tbody>
                     </table>
+                </div>
+                
+                <!-- ページネーション -->
+                <div class="pagination-container">
+                    <div class="pagination-info">
+                        <span id="paginationInfo">0件中 0-0件を表示</span>
+                    </div>
+                    <div class="pagination-controls">
+                        <label>件数:</label>
+                        <select id="pageSize" onchange="changePageSize()">
+                            <option value="100">100件</option>
+                            <option value="250">250件</option>
+                            <option value="500" selected>500件</option>
+                            <option value="1000">1000件</option>
+                        </select>
+                        
+                        <button onclick="goToPage(1)" id="firstBtn">最初</button>
+                        <button onclick="goToPage(currentPage - 1)" id="prevBtn">前へ</button>
+                        
+                        <span>ページ</span>
+                        <input type="number" id="pageInput" value="1" min="1" onchange="goToInputPage()">
+                        <span>/ <span id="totalPages">1</span></span>
+                        
+                        <button onclick="goToPage(currentPage + 1)" id="nextBtn">次へ</button>
+                        <button onclick="goToPage(totalPages)" id="lastBtn">最後</button>
+                    </div>
+                </div>
+                
+                <!-- テーブルフッター -->
+                <div class="table-footer">
+                    <span id="tableFooterCount">総件数: 0件</span>
                 </div>
             </div>
         </div>
@@ -422,10 +525,16 @@
         const SUPABASE_URL = 'https://ypohqgcfdcdykvlanhgf.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlwb2hxZ2NmZGNkeWt2bGFuaGdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAyODg5NTgsImV4cCI6MjA2NTg2NDk1OH0.RMaAA4tFQC5rvQ49qy13F2-2cJslTQwIT1jxYGcSqXc';
         
+        // グローバル変数
         let allData = []; // 全データ
         let filteredData = []; // フィルター後データ
         let sortColumn = null;
         let sortDirection = 'asc';
+        
+        // ページネーション関連
+        let currentPage = 1;
+        let pageSize = 500;
+        let totalPages = 1;
         
         function updateDebugInfo(info) {
             const debugEl = document.getElementById('debugInfo');
@@ -463,8 +572,11 @@
                 // 期間設定の初期化
                 initializeDateRange(data);
                 
+                // ページネーション初期化
+                initializePagination();
+                
                 // DOM更新
-                updateSummaryAndTable(filteredData);
+                updateTableAndPagination();
                 
                 // フィルター設定
                 setupFilters(data);
@@ -490,6 +602,41 @@
             }
         }
 
+        function initializePagination() {
+            currentPage = 1;
+            pageSize = parseInt(document.getElementById('pageSize').value);
+            updatePaginationInfo();
+        }
+
+        function updatePaginationInfo() {
+            const currentData = getCurrentFilteredData();
+            totalPages = Math.ceil(currentData.length / pageSize) || 1;
+            
+            // ページ番号の調整
+            if (currentPage > totalPages) {
+                currentPage = totalPages;
+            }
+            
+            const startIndex = (currentPage - 1) * pageSize + 1;
+            const endIndex = Math.min(currentPage * pageSize, currentData.length);
+            
+            // UI更新
+            document.getElementById('paginationInfo').textContent = 
+                `${currentData.length}件中 ${startIndex}-${endIndex}件を表示`;
+            document.getElementById('totalPages').textContent = totalPages;
+            document.getElementById('pageInput').value = currentPage;
+            document.getElementById('pageInput').max = totalPages;
+            
+            // ボタンの有効/無効設定
+            document.getElementById('firstBtn').disabled = currentPage <= 1;
+            document.getElementById('prevBtn').disabled = currentPage <= 1;
+            document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+            document.getElementById('lastBtn').disabled = currentPage >= totalPages;
+            
+            // フッターの件数表示
+            document.getElementById('tableFooterCount').textContent = `総件数: ${currentData.length}件`;
+        }
+
         function applyDateFilter() {
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
@@ -504,6 +651,7 @@
                 return rowDate && rowDate >= startDate && rowDate <= endDate;
             });
             
+            currentPage = 1; // ページを最初に戻す
             applyFilters();
         }
 
@@ -511,32 +659,40 @@
             document.getElementById('startDate').value = '';
             document.getElementById('endDate').value = '';
             filteredData = [...allData];
+            currentPage = 1;
             applyFilters();
         }
         
-        function updateSummaryAndTable(data) {
+        function updateTableAndPagination() {
+            const currentData = getCurrentFilteredData();
+            
             // サマリー更新
-            const totalCount = data.length;
-            const totalSales = data.reduce((sum, row) => sum + (row.合計金額 || 0), 0);
-            const dates = data.map(row => row.日付).filter(date => date).sort();
+            const totalSales = currentData.reduce((sum, row) => sum + (row.合計金額 || 0), 0);
+            const dates = currentData.map(row => row.日付).filter(date => date).sort();
             const dateRange = dates.length > 0 ? `${dates[0]} 〜 ${dates[dates.length - 1]}` : '-';
             
-            const totalCountEl = document.getElementById('totalCount');
-            const totalSalesEl = document.getElementById('totalSales');
-            const dateRangeEl = document.getElementById('dateRange');
+            document.getElementById('totalCount').textContent = currentData.length.toLocaleString();
+            document.getElementById('totalSales').textContent = totalSales.toLocaleString() + '円';
+            document.getElementById('dateRange').textContent = dateRange;
             
-            if (totalCountEl) totalCountEl.textContent = totalCount.toLocaleString();
-            if (totalSalesEl) totalSalesEl.textContent = totalSales.toLocaleString() + '円';
-            if (dateRangeEl) dateRangeEl.textContent = dateRange;
+            // ページネーション情報更新
+            updatePaginationInfo();
+            
+            // 現在のページのデータを取得
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = startIndex + pageSize;
+            const pageData = currentData.slice(startIndex, endIndex);
             
             // テーブル更新
             const tbody = document.getElementById('dataTableBody');
             if (tbody) {
                 tbody.innerHTML = '';
                 
-                data.forEach(row => {
+                pageData.forEach((row, index) => {
+                    const globalIndex = startIndex + index + 1; // 全体での行番号
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
+                        <td>${globalIndex}</td>
                         <td>${row.日付 || '-'}</td>
                         <td>${row.時間 || '-'}</td>
                         <td>${row.店舗名 || '-'}</td>
@@ -574,12 +730,13 @@
                     });
                     header.classList.add(sortDirection === 'asc' ? 'sort-asc' : 'sort-desc');
                     
-                    sortData();
+                    currentPage = 1; // ソート時はページを最初に戻す
+                    sortAndUpdateTable();
                 });
             });
         }
 
-        function sortData() {
+        function sortAndUpdateTable() {
             if (!sortColumn) return;
             
             const currentData = getCurrentFilteredData();
@@ -588,7 +745,7 @@
                 let bVal = b[sortColumn] || '';
                 
                 // 数値の場合は数値として比較
-                if (sortColumn === '合計金額' || sortColumn === '単価' || sortColumn === '数量' || sortColumn === '割引' || sortColumn === '消費税') {
+                if (['合計金額', '単価', '数量', '割引', '消費税'].includes(sortColumn)) {
                     aVal = parseFloat(aVal) || 0;
                     bVal = parseFloat(bVal) || 0;
                 }
@@ -598,7 +755,7 @@
                 return 0;
             });
             
-            updateSummaryAndTable(currentData);
+            updateTableAndPagination();
         }
 
         function getCurrentFilteredData() {
@@ -630,7 +787,6 @@
                        (filters.store.length === 0 || filters.store.includes(row.店舗名)) &&
                        (filters.product.length === 0 || filters.product.includes(row.商品名));
             });
-        }
         
         function setupFilters(data) {
             const filterConfigs = [
@@ -672,15 +828,12 @@
         function applyFilters() {
             console.log('=== フィルター適用開始 ===');
             
-            const currentData = getCurrentFilteredData();
-            
-            console.log('フィルター後のデータ件数:', currentData.length);
-            
-            updateSummaryAndTable(currentData);
+            currentPage = 1; // フィルター適用時はページを最初に戻す
+            updateTableAndPagination();
             
             // ソートが適用されている場合は再ソート
             if (sortColumn) {
-                sortData();
+                sortAndUpdateTable();
             }
         }
         
@@ -701,8 +854,12 @@
                 h.classList.remove('sort-asc', 'sort-desc');
             });
             
+            // ページを最初に戻す
+            currentPage = 1;
+            
             // 全データを表示
-            updateSummaryAndTable(allData);
+            filteredData = [...allData];
+            updateTableAndPagination();
         }
         
         // 接続テスト
