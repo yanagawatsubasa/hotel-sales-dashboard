@@ -575,8 +575,11 @@
         function initializeDateRange(data) {
             const dates = data.map(row => row.日付).filter(date => date).sort();
             if (dates.length > 0) {
-                document.getElementById('startDate').value = dates[0];
-                document.getElementById('endDate').value = dates[dates.length - 1];
+                // 期間設定は空のままにして、初期状態では期間フィルターを適用しない
+                document.getElementById('startDate').value = '';
+                document.getElementById('endDate').value = '';
+                console.log('期間設定初期化: フィルター無し（全期間表示）');
+                console.log('データ期間:', dates[0], '〜', dates[dates.length - 1]);
             }
         }
 
@@ -734,17 +737,26 @@
         }
 
         function getCurrentFilteredData() {
+            // ベースデータ（期間フィルターまたは全データ）
             let data = filteredData;
+            
+            // 期間フィルターが設定されている場合のみ適用
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
             
+            // 期間フィルターは両方の値が入力されている場合のみ適用
             if (startDate && endDate) {
+                console.log('期間フィルター適用:', startDate, '〜', endDate);
                 data = data.filter(row => {
                     const rowDate = row.日付;
                     return rowDate && rowDate >= startDate && rowDate <= endDate;
                 });
+                console.log('期間フィルター後件数:', data.length);
+            } else {
+                console.log('期間フィルター未適用（全期間）');
             }
             
+            // カテゴリフィルターを適用
             const filters = {
                 department: Array.from(document.querySelectorAll('#departmentFilters input:checked')).map(cb => cb.value),
                 payment: Array.from(document.querySelectorAll('#paymentFilters input:checked')).map(cb => cb.value),
@@ -753,13 +765,18 @@
                 product: Array.from(document.querySelectorAll('#productFilters input:checked')).map(cb => cb.value)
             };
             
-            return data.filter(row => {
+            console.log('カテゴリフィルター:', filters);
+            
+            const result = data.filter(row => {
                 return (filters.department.length === 0 || filters.department.includes(row.請求先)) &&
                        (filters.payment.length === 0 || filters.payment.includes(row.決済種別)) &&
                        (filters.slip.length === 0 || filters.slip.includes(row.伝票種別)) &&
                        (filters.store.length === 0 || filters.store.includes(row.店舗名)) &&
                        (filters.product.length === 0 || filters.product.includes(row.商品名));
             });
+            
+            console.log('最終フィルター結果件数:', result.length);
+            return result;
         }
 
         function goToPage(page) {
