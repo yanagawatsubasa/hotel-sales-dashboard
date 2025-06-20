@@ -87,7 +87,6 @@
             color: #007bff;
         }
 
-        /* 期間設定スタイル */
         .date-filter {
             background: #f8f9fa;
             padding: 20px;
@@ -115,7 +114,6 @@
             font-size: 0.9em;
         }
 
-        /* テーブルスタイル */
         .table-container {
             margin-top: 30px;
             border: 1px solid #dee2e6;
@@ -176,7 +174,6 @@
             opacity: 1;
         }
 
-        /* 列幅調整 */
         .col-no { width: 60px; }
         .col-date { width: 100px; }
         .col-time { width: 80px; }
@@ -191,7 +188,6 @@
         .col-discount { width: 90px; }
         .col-tax { width: 90px; }
 
-        /* ページネーションスタイル */
         .pagination-container {
             background: #f8f9fa;
             padding: 15px 20px;
@@ -259,7 +255,6 @@
             color: #495057;
         }
 
-        /* フィルタースタイル */
         .filter-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -375,7 +370,6 @@
         <div class="section" id="dataSection" style="display: none;">
             <h2 style="margin-bottom: 20px; color: #2c3e50;">📊 売上データ</h2>
             
-            <!-- 期間設定 -->
             <div class="date-filter">
                 <h3>📅 期間設定</h3>
                 <div class="date-inputs">
@@ -428,7 +422,6 @@
                     </table>
                 </div>
                 
-                <!-- ページネーション -->
                 <div class="pagination-container">
                     <div class="pagination-info">
                         <span id="paginationInfo">0件中 0-0件を表示</span>
@@ -454,7 +447,6 @@
                     </div>
                 </div>
                 
-                <!-- テーブルフッター -->
                 <div class="table-footer">
                     <span id="tableFooterCount">総件数: 0件</span>
                 </div>
@@ -521,17 +513,13 @@
     <script>
         console.log('=== スクリプト開始 ===');
         
-        // Supabase設定
         const SUPABASE_URL = 'https://ypohqgcfdcdykvlanhgf.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlwb2hxZ2NmZGNkeWt2bGFuaGdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAyODg5NTgsImV4cCI6MjA2NTg2NDk1OH0.RMaAA4tFQC5rvQ49qy13F2-2cJslTQwIT1jxYGcSqXc';
         
-        // グローバル変数
-        let allData = []; // 全データ
-        let filteredData = []; // フィルター後データ
+        let allData = [];
+        let filteredData = [];
         let sortColumn = null;
         let sortDirection = 'asc';
-        
-        // ページネーション関連
         let currentPage = 1;
         let pageSize = 500;
         let totalPages = 1;
@@ -549,9 +537,8 @@
             console.log('受信データ:', data);
             
             allData = data;
-            filteredData = [...data]; // 初期状態は全データ
+            filteredData = [...data];
             
-            // デバッグ情報を表示
             const columns = ['請求先', '決済種別', '伝票種別', '店舗名', '商品名'];
             const debugInfo = `
                 <strong>データ分析結果:</strong><br>
@@ -569,19 +556,10 @@
             updateDebugInfo(debugInfo);
             
             try {
-                // 期間設定の初期化
                 initializeDateRange(data);
-                
-                // ページネーション初期化
                 initializePagination();
-                
-                // DOM更新
                 updateTableAndPagination();
-                
-                // フィルター設定
                 setupFilters(data);
-                
-                // ソート機能設定
                 setupSortHandlers();
                 
                 document.getElementById('filterSection').style.display = 'block';
@@ -612,7 +590,6 @@
             const currentData = getCurrentFilteredData();
             totalPages = Math.ceil(currentData.length / pageSize) || 1;
             
-            // ページ番号の調整
             if (currentPage > totalPages) {
                 currentPage = totalPages;
             }
@@ -620,20 +597,17 @@
             const startIndex = (currentPage - 1) * pageSize + 1;
             const endIndex = Math.min(currentPage * pageSize, currentData.length);
             
-            // UI更新
             document.getElementById('paginationInfo').textContent = 
                 `${currentData.length}件中 ${startIndex}-${endIndex}件を表示`;
             document.getElementById('totalPages').textContent = totalPages;
             document.getElementById('pageInput').value = currentPage;
             document.getElementById('pageInput').max = totalPages;
             
-            // ボタンの有効/無効設定
             document.getElementById('firstBtn').disabled = currentPage <= 1;
             document.getElementById('prevBtn').disabled = currentPage <= 1;
             document.getElementById('nextBtn').disabled = currentPage >= totalPages;
             document.getElementById('lastBtn').disabled = currentPage >= totalPages;
             
-            // フッターの件数表示
             document.getElementById('tableFooterCount').textContent = `総件数: ${currentData.length}件`;
         }
 
@@ -651,7 +625,7 @@
                 return rowDate && rowDate >= startDate && rowDate <= endDate;
             });
             
-            currentPage = 1; // ページを最初に戻す
+            currentPage = 1;
             applyFilters();
         }
 
@@ -666,7 +640,6 @@
         function updateTableAndPagination() {
             const currentData = getCurrentFilteredData();
             
-            // サマリー更新
             const totalSales = currentData.reduce((sum, row) => sum + (row.合計金額 || 0), 0);
             const dates = currentData.map(row => row.日付).filter(date => date).sort();
             const dateRange = dates.length > 0 ? `${dates[0]} 〜 ${dates[dates.length - 1]}` : '-';
@@ -675,21 +648,18 @@
             document.getElementById('totalSales').textContent = totalSales.toLocaleString() + '円';
             document.getElementById('dateRange').textContent = dateRange;
             
-            // ページネーション情報更新
             updatePaginationInfo();
             
-            // 現在のページのデータを取得
             const startIndex = (currentPage - 1) * pageSize;
             const endIndex = startIndex + pageSize;
             const pageData = currentData.slice(startIndex, endIndex);
             
-            // テーブル更新
             const tbody = document.getElementById('dataTableBody');
             if (tbody) {
                 tbody.innerHTML = '';
                 
                 pageData.forEach((row, index) => {
-                    const globalIndex = startIndex + index + 1; // 全体での行番号
+                    const globalIndex = startIndex + index + 1;
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td>${globalIndex}</td>
@@ -724,13 +694,12 @@
                         sortDirection = 'asc';
                     }
                     
-                    // ソート状態をUIに反映
                     headers.forEach(h => {
                         h.classList.remove('sort-asc', 'sort-desc');
                     });
                     header.classList.add(sortDirection === 'asc' ? 'sort-asc' : 'sort-desc');
                     
-                    currentPage = 1; // ソート時はページを最初に戻す
+                    currentPage = 1;
                     sortAndUpdateTable();
                 });
             });
@@ -744,7 +713,6 @@
                 let aVal = a[sortColumn] || '';
                 let bVal = b[sortColumn] || '';
                 
-                // 数値の場合は数値として比較
                 if (['合計金額', '単価', '数量', '割引', '消費税'].includes(sortColumn)) {
                     aVal = parseFloat(aVal) || 0;
                     bVal = parseFloat(bVal) || 0;
@@ -759,7 +727,6 @@
         }
 
         function getCurrentFilteredData() {
-            // 期間フィルターを適用
             let data = filteredData;
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
@@ -771,7 +738,6 @@
                 });
             }
             
-            // 各フィルターを適用
             const filters = {
                 department: Array.from(document.querySelectorAll('#departmentFilters input:checked')).map(cb => cb.value),
                 payment: Array.from(document.querySelectorAll('#paymentFilters input:checked')).map(cb => cb.value),
@@ -787,6 +753,32 @@
                        (filters.store.length === 0 || filters.store.includes(row.店舗名)) &&
                        (filters.product.length === 0 || filters.product.includes(row.商品名));
             });
+        }
+
+        function goToPage(page) {
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            updateTableAndPagination();
+            
+            if (sortColumn) {
+                sortAndUpdateTable();
+            }
+        }
+
+        function goToInputPage() {
+            const inputPage = parseInt(document.getElementById('pageInput').value);
+            goToPage(inputPage);
+        }
+
+        function changePageSize() {
+            pageSize = parseInt(document.getElementById('pageSize').value);
+            currentPage = 1;
+            updateTableAndPagination();
+            
+            if (sortColumn) {
+                sortAndUpdateTable();
+            }
+        }
         
         function setupFilters(data) {
             const filterConfigs = [
@@ -828,10 +820,9 @@
         function applyFilters() {
             console.log('=== フィルター適用開始 ===');
             
-            currentPage = 1; // フィルター適用時はページを最初に戻す
+            currentPage = 1;
             updateTableAndPagination();
             
-            // ソートが適用されている場合は再ソート
             if (sortColumn) {
                 sortAndUpdateTable();
             }
@@ -840,29 +831,22 @@
         function resetFilters() {
             console.log('=== フィルターリセット ===');
             
-            // すべてのチェックボックスをチェック状態に
             const checkboxes = document.querySelectorAll('#filterSection input[type="checkbox"]');
             checkboxes.forEach(cb => cb.checked = true);
             
-            // 期間クリア
             clearDateFilter();
             
-            // ソート状態クリア
             sortColumn = null;
             sortDirection = 'asc';
             document.querySelectorAll('th.sortable').forEach(h => {
                 h.classList.remove('sort-asc', 'sort-desc');
             });
             
-            // ページを最初に戻す
             currentPage = 1;
-            
-            // 全データを表示
             filteredData = [...allData];
             updateTableAndPagination();
         }
         
-        // 接続テスト
         window.addEventListener('load', async function() {
             console.log('=== ページ読み込み完了 ===');
             
