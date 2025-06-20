@@ -846,11 +846,18 @@
         }
 
         function goToPage(page) {
-            if (page < 1 || page > totalPages) return;
+            console.log('=== goToPage 呼び出し ===', 'ページ:', page);
+            if (page < 1 || page > totalPages) {
+                console.log('無効なページ番号:', page, '有効範囲: 1-', totalPages);
+                return;
+            }
             currentPage = page;
+            console.log('currentPage を更新:', currentPage);
+            
             updateTableAndPagination();
             
             if (sortColumn) {
+                console.log('ソート再適用:', sortColumn, sortDirection);
                 sortAndUpdateTable();
             }
         }
