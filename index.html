@@ -608,6 +608,7 @@
             document.getElementById('nextBtn').disabled = currentPage >= totalPages;
             document.getElementById('lastBtn').disabled = currentPage >= totalPages;
             
+            // 右下の総件数は常にフィルター結果の総件数を表示（ページに関係なく固定）
             document.getElementById('tableFooterCount').textContent = `総件数: ${currentData.length}件`;
         }
 
@@ -640,6 +641,7 @@
         function updateTableAndPagination() {
             const currentData = getCurrentFilteredData();
             
+            // サマリー更新（フィルター結果の全件に対して）
             const totalSales = currentData.reduce((sum, row) => sum + (row.合計金額 || 0), 0);
             const dates = currentData.map(row => row.日付).filter(date => date).sort();
             const dateRange = dates.length > 0 ? `${dates[0]} 〜 ${dates[dates.length - 1]}` : '-';
@@ -648,18 +650,23 @@
             document.getElementById('totalSales').textContent = totalSales.toLocaleString() + '円';
             document.getElementById('dateRange').textContent = dateRange;
             
+            // ページネーション情報更新
             updatePaginationInfo();
             
+            // 現在のページのデータを取得（表示用）
             const startIndex = (currentPage - 1) * pageSize;
             const endIndex = startIndex + pageSize;
             const pageData = currentData.slice(startIndex, endIndex);
             
+            console.log(`ページ ${currentPage}: 全${currentData.length}件中 ${startIndex + 1}-${Math.min(endIndex, currentData.length)}件目を表示`);
+            
+            // テーブル更新（現在ページの500件分のみ）
             const tbody = document.getElementById('dataTableBody');
             if (tbody) {
                 tbody.innerHTML = '';
                 
                 pageData.forEach((row, index) => {
-                    const globalIndex = startIndex + index + 1;
+                    const globalIndex = startIndex + index + 1; // フィルター結果全体での行番号
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td>${globalIndex}</td>
@@ -847,58 +854,18 @@
             updateTableAndPagination();
         }
         
-        window.addEventListener('load', async function() {
-            console.log('=== ページ読み込み完了 ===');
+        async function fetchAllData() {
+            console.log('=== 全件データ取得開始 ===');
+            let allData = [];
+            let offset = 0;
+            const batchSize = 1000; // 1回あたり1000件ずつ取得
+            let hasMore = true;
             
-            try {
-                document.getElementById('status').innerHTML = '<span class="loading">データベースからデータを取得中...</span>';
-                
-                // Supabaseからの全件取得（制限なし）
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/sales_data?limit=50000`, {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                        'Range': '0-49999' // 0-49999の範囲を指定（50000件まで取得可能）
-                    }
-                });
-                
-                console.log('レスポンス受信:', response.status);
-                console.log('レスポンスヘッダー:', response.headers.get('Content-Range'));
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('データ取得成功:', data.length, '件');
-                    console.log('期待件数: 3182件, 実際の取得件数:', data.length);
-                    
-                    if (data.length > 0) {
-                        // 全件取得できているかチェック
-                        if (data.length >= 3180) {
-                            document.getElementById('status').innerHTML = `<span class="success">✅ ${data.length}件のデータを全件取得しました</span>`;
-                        } else {
-                            document.getElementById('status').innerHTML = `<span class="error">⚠️ ${data.length}件のデータを取得（全件取得できていない可能性があります）</span>`;
-                        }
-                        
-                        // データ取得成功のデバッグ情報
-                        console.log('データサンプル（最初の3件）:', data.slice(0, 3));
-                        console.log('データサンプル（最後の3件）:', data.slice(-3));
-                        
-                        displayData(data);
-                    } else {
-                        document.getElementById('status').innerHTML = '<span class="success">✅ 接続成功（データは空）</span>';
-                    }
-                } else {
-                    throw new Error(`HTTP ${response.status} - ${response.statusText}`);
-                }
-                
-            } catch (error) {
-                console.error('メインエラー:', error);
-                document.getElementById('status').innerHTML = `<span class="error">❌ 接続失敗: ${error.message}</span>`;
-                
-                // 制限にかかった可能性がある場合の代替手段
-                console.warn('代替取得方法を試行中...');
+            while (hasMore) {
                 try {
-                    // Prefer ヘッダーを使用して全件取得を試行
-                    const fallbackResponse = await fetch(`${SUPABASE_URL}/rest/v1/sales_data`, {
+                    console.log(`バッチ ${Math.floor(offset / batchSize) + 1}: ${offset}件目から${offset + batchSize - 1}件目まで取得中...`);
+                    
+                    const response = await fetch(`${SUPABASE_URL}/rest/v1/sales_data?limit=${batchSize}&offset=${offset}`, {
                         headers: {
                             'apikey': SUPABASE_ANON_KEY,
                             'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
@@ -906,15 +873,69 @@
                         }
                     });
                     
-                    if (fallbackResponse.ok) {
-                        const fallbackData = await fallbackResponse.json();
-                        console.log('代替方法での取得成功:', fallbackData.length, '件');
-                        document.getElementById('status').innerHTML = `<span class="success">✅ ${fallbackData.length}件のデータを取得しました（代替方法）</span>`;
-                        displayData(fallbackData);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status} - ${response.statusText}`);
                     }
-                } catch (fallbackError) {
-                    console.error('代替方法も失敗:', fallbackError);
+                    
+                    const batchData = await response.json();
+                    console.log(`バッチ ${Math.floor(offset / batchSize) + 1}: ${batchData.length}件取得`);
+                    
+                    if (batchData.length === 0) {
+                        hasMore = false;
+                        break;
+                    }
+                    
+                    allData = allData.concat(batchData);
+                    offset += batchSize;
+                    
+                    // 安全のため：10000件を超えたら停止（無限ループ防止）
+                    if (offset > 10000) {
+                        console.warn('安全制限により取得を停止（10000件）');
+                        hasMore = false;
+                    }
+                    
+                    // 1000件未満の場合は最後のバッチ
+                    if (batchData.length < batchSize) {
+                        hasMore = false;
+                    }
+                    
+                    // UI更新
+                    document.getElementById('status').innerHTML = 
+                        `<span class="loading">データ取得中... ${allData.length}件</span>`;
+                        
+                } catch (error) {
+                    console.error(`バッチ ${Math.floor(offset / batchSize) + 1} でエラー:`, error);
+                    hasMore = false;
                 }
+            }
+            
+            console.log(`=== 全件データ取得完了: ${allData.length}件 ===`);
+            return allData;
+        }
+
+        window.addEventListener('load', async function() {
+            console.log('=== ページ読み込み完了 ===');
+            
+            try {
+                document.getElementById('status').innerHTML = '<span class="loading">データベースからデータを取得中...</span>';
+                
+                // 全件データ取得
+                const data = await fetchAllData();
+                
+                if (data.length > 0) {
+                    document.getElementById('status').innerHTML = `<span class="success">✅ ${data.length}件のデータを全件取得しました</span>`;
+                    
+                    console.log('データサンプル（最初の3件）:', data.slice(0, 3));
+                    console.log('データサンプル（最後の3件）:', data.slice(-3));
+                    
+                    displayData(data);
+                } else {
+                    document.getElementById('status').innerHTML = '<span class="error">❌ データが取得できませんでした</span>';
+                }
+                
+            } catch (error) {
+                console.error('メインエラー:', error);
+                document.getElementById('status').innerHTML = `<span class="error">❌ 接続失敗: ${error.message}</span>`;
             }
         });
         
