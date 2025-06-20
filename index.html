@@ -19,7 +19,7 @@
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             background: white;
             border-radius: 15px;
@@ -86,21 +86,162 @@
             font-weight: bold;
             color: #007bff;
         }
-        
+
+        /* 期間設定スタイル */
+        .date-filter {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .date-filter h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1em;
+        }
+
+        .date-inputs {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .date-inputs input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+
+        /* テーブルスタイル */
+        .table-container {
+            margin-top: 30px;
+            height: 500px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .table-wrapper {
+            height: 100%;
+            overflow: auto;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.9em;
+            font-size: 0.85em;
+            min-width: 1200px;
         }
         
         th, td {
-            padding: 8px;
+            padding: 8px 6px;
             border: 1px solid #dee2e6;
             text-align: left;
+            white-space: nowrap;
         }
         
         th {
+            background: #2c3e50;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        th:hover {
+            background: #34495e;
+        }
+
+        th.sortable::after {
+            content: ' ↕';
+            font-size: 0.8em;
+            opacity: 0.5;
+        }
+
+        th.sort-asc::after {
+            content: ' ↑';
+            opacity: 1;
+        }
+
+        th.sort-desc::after {
+            content: ' ↓';
+            opacity: 1;
+        }
+
+        /* 列幅調整 */
+        .col-date { width: 90px; }
+        .col-time { width: 70px; }
+        .col-store { width: 100px; }
+        .col-department { width: 120px; }
+        .col-amount { width: 90px; }
+        .col-payment { width: 80px; }
+        .col-slip { width: 80px; }
+        .col-product { width: 150px; }
+        .col-price { width: 80px; }
+        .col-qty { width: 60px; }
+        .col-discount { width: 80px; }
+        .col-tax { width: 80px; }
+
+        /* フィルタースタイル */
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .filter-group {
             background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .filter-group h4 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+            font-size: 0.9em;
+        }
+
+        .filter-options {
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .filter-options label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+            font-size: 0.85em;
+            cursor: pointer;
+        }
+
+        .filter-options input[type="checkbox"] {
+            margin-right: 6px;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 5px;
+            margin-top: 8px;
+        }
+
+        .filter-buttons button {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 0.75em;
+            cursor: pointer;
+        }
+
+        .filter-buttons button:hover {
+            background: #5a6268;
         }
 
         .debug-info {
@@ -113,73 +254,32 @@
             font-size: 0.85em;
         }
 
-        /* ページネーション関連のスタイル */
-        .pagination-controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: 20px 0;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        .pagination-info {
-            color: #666;
-            font-size: 0.9em;
-        }
-
-        .pagination-buttons {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .pagination-buttons button {
-            padding: 8px 16px;
-            border: 1px solid #007bff;
-            background: white;
-            color: #007bff;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9em;
-        }
-
-        .pagination-buttons button:hover:not(:disabled) {
-            background: #007bff;
-            color: white;
-        }
-
-        .pagination-buttons button:disabled {
-            background: #f8f9fa;
-            color: #6c757d;
-            border-color: #dee2e6;
-            cursor: not-allowed;
-        }
-
-        .pagination-buttons button.active {
-            background: #007bff;
-            color: white;
-        }
-
-        .page-size-selector {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .page-size-selector select {
-            padding: 6px 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 0.9em;
-        }
-
-        .table-container {
+        .action-buttons {
+            text-align: center;
             margin-top: 20px;
-            max-height: 600px;
-            overflow-y: auto;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
+        }
+
+        .action-buttons button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            margin: 0 5px;
+        }
+
+        .action-buttons button:hover {
+            background: #0056b3;
+        }
+
+        .action-buttons button.reset {
+            background: #6c757d;
+        }
+
+        .action-buttons button.reset:hover {
+            background: #5a6268;
         }
     </style>
 </head>
@@ -187,12 +287,12 @@
     <div class="container">
         <div class="header">
             <h1>🏨 ホテル売上管理ダッシュボード</h1>
-            <p>Supabase連携版 - ページネーション対応版</p>
+            <p>拡張版 - 期間設定・ソート・詳細フィルター対応</p>
         </div>
         
         <div class="section">
             <div class="status" id="status">
-                <span class="loading">データベースからデータを取得中...</span>
+                <span class="loading">デバッグモードで接続中...</span>
             </div>
         </div>
         
@@ -204,9 +304,22 @@
         <div class="section" id="dataSection" style="display: none;">
             <h2 style="margin-bottom: 20px; color: #2c3e50;">📊 売上データ</h2>
             
+            <!-- 期間設定 -->
+            <div class="date-filter">
+                <h3>📅 期間設定</h3>
+                <div class="date-inputs">
+                    <label>開始日:</label>
+                    <input type="date" id="startDate">
+                    <label>終了日:</label>
+                    <input type="date" id="endDate">
+                    <button onclick="applyDateFilter()" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer;">期間適用</button>
+                    <button onclick="clearDateFilter()" style="background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer;">期間クリア</button>
+                </div>
+            </div>
+            
             <div class="summary-grid">
                 <div class="summary-card">
-                    <h3>総データ件数</h3>
+                    <h3>表示データ件数</h3>
                     <div class="value" id="totalCount">-</div>
                 </div>
                 <div class="summary-card">
@@ -218,71 +331,86 @@
                     <div class="value" id="dateRange">-</div>
                 </div>
             </div>
-
-            <!-- ページネーション制御 -->
-            <div class="pagination-controls">
-                <div class="page-size-selector">
-                    <label for="pageSize">表示件数:</label>
-                    <select id="pageSize" onchange="changePageSize()">
-                        <option value="50">50件</option>
-                        <option value="100" selected>100件</option>
-                        <option value="200">200件</option>
-                        <option value="500">500件</option>
-                    </select>
-                </div>
-                
-                <div class="pagination-info" id="paginationInfo">
-                    - / -
-                </div>
-                
-                <div class="pagination-buttons">
-                    <button onclick="goToFirstPage()" id="firstBtn">最初</button>
-                    <button onclick="goToPrevPage()" id="prevBtn">前へ</button>
-                    <span id="pageNumbers"></span>
-                    <button onclick="goToNextPage()" id="nextBtn">次へ</button>
-                    <button onclick="goToLastPage()" id="lastBtn">最後</button>
-                </div>
-            </div>
             
             <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>日付</th>
-                            <th>店舗名</th>
-                            <th>請求先</th>
-                            <th>合計金額</th>
-                            <th>決済種別</th>
-                        </tr>
-                    </thead>
-                    <tbody id="dataTableBody">
-                    </tbody>
-                </table>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="sortable col-date" data-column="日付">日付</th>
+                                <th class="sortable col-time" data-column="時間">時間</th>
+                                <th class="sortable col-store" data-column="店舗名">店舗名</th>
+                                <th class="sortable col-department" data-column="請求先">請求先</th>
+                                <th class="sortable col-amount" data-column="合計金額">合計金額</th>
+                                <th class="sortable col-payment" data-column="決済種別">決済種別</th>
+                                <th class="sortable col-slip" data-column="伝票種別">伝票種別</th>
+                                <th class="sortable col-product" data-column="商品名">商品名</th>
+                                <th class="sortable col-price" data-column="単価">単価</th>
+                                <th class="sortable col-qty" data-column="数量">数量</th>
+                                <th class="sortable col-discount" data-column="割引">割引</th>
+                                <th class="sortable col-tax" data-column="消費税">消費税</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dataTableBody">
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
         <div class="section" id="filterSection" style="display: none;">
-            <h2 style="margin-bottom: 20px; color: #2c3e50;">🔍 フィルター</h2>
+            <h2 style="margin-bottom: 20px; color: #2c3e50;">🔍 詳細フィルター</h2>
             
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
-                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
-                    <h3 style="margin-bottom: 15px; color: #2c3e50; font-size: 1em;">🏢 請求先</h3>
-                    <div id="departmentFilters" style="max-height: 150px; overflow-y: auto;"></div>
-                    <div style="margin-top: 10px;">
-                        <button onclick="selectAllDepartments()" style="background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.8em; margin-right: 5px; cursor: pointer;">全選択</button>
-                        <button onclick="deselectAllDepartments()" style="background: #6c757d; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.8em; cursor: pointer;">全解除</button>
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <h4>🏢 請求先</h4>
+                    <div class="filter-options" id="departmentFilters"></div>
+                    <div class="filter-buttons">
+                        <button onclick="selectAllFilter('department')">全選択</button>
+                        <button onclick="deselectAllFilter('department')">全解除</button>
                     </div>
                 </div>
                 
-                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
-                    <h3 style="margin-bottom: 15px; color: #2c3e50; font-size: 1em;">💳 決済種別</h3>
-                    <div id="paymentFilters"></div>
+                <div class="filter-group">
+                    <h4>💳 決済種別</h4>
+                    <div class="filter-options" id="paymentFilters"></div>
+                    <div class="filter-buttons">
+                        <button onclick="selectAllFilter('payment')">全選択</button>
+                        <button onclick="deselectAllFilter('payment')">全解除</button>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <h4>📋 伝票種別</h4>
+                    <div class="filter-options" id="slipFilters"></div>
+                    <div class="filter-buttons">
+                        <button onclick="selectAllFilter('slip')">全選択</button>
+                        <button onclick="deselectAllFilter('slip')">全解除</button>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <h4>🏪 店舗名</h4>
+                    <div class="filter-options" id="storeFilters"></div>
+                    <div class="filter-buttons">
+                        <button onclick="selectAllFilter('store')">全選択</button>
+                        <button onclick="deselectAllFilter('store')">全解除</button>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <h4>📦 商品名</h4>
+                    <div class="filter-options" id="productFilters"></div>
+                    <div class="filter-buttons">
+                        <button onclick="selectAllFilter('product')">全選択</button>
+                        <button onclick="deselectAllFilter('product')">全解除</button>
+                    </div>
                 </div>
             </div>
             
-            <div style="text-align: center; margin-top: 20px;">
-                <button onclick="applyFilters()" style="background: #007bff; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 1em; cursor: pointer;">フィルター適用</button>
-                <button onclick="resetFilters()" style="background: #6c757d; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 1em; cursor: pointer; margin-left: 10px;">リセット</button>
+            <div class="action-buttons">
+                <button onclick="applyFilters()">フィルター適用</button>
+                <button onclick="resetFilters()" class="reset">リセット</button>
             </div>
         </div>
     </div>
@@ -295,9 +423,9 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlwb2hxZ2NmZGNkeWt2bGFuaGdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAyODg5NTgsImV4cCI6MjA2NTg2NDk1OH0.RMaAA4tFQC5rvQ49qy13F2-2cJslTQwIT1jxYGcSqXc';
         
         let allData = []; // 全データ
-        let filteredData = []; // フィルター後のデータ
-        let currentPage = 1;
-        let pageSize = 100;
+        let filteredData = []; // フィルター後データ
+        let sortColumn = null;
+        let sortDirection = 'asc';
         
         function updateDebugInfo(info) {
             const debugEl = document.getElementById('debugInfo');
@@ -312,39 +440,40 @@
             console.log('受信データ:', data);
             
             allData = data;
-            filteredData = data; // 初期状態では全データを表示
-            currentPage = 1; // ページをリセット
+            filteredData = [...data]; // 初期状態は全データ
             
             // デバッグ情報を表示
+            const columns = ['請求先', '決済種別', '伝票種別', '店舗名', '商品名'];
             const debugInfo = `
                 <strong>データ分析結果:</strong><br>
                 • 総件数: ${data.length}件<br>
-                • 請求先の種類: ${[...new Set(data.map(row => row.請求先).filter(d => d))].join(', ')}<br>
-                • 決済種別の種類: ${[...new Set(data.map(row => row.決済種別).filter(p => p))].join(', ')}<br>
+                ${columns.map(col => {
+                    const values = [...new Set(data.map(row => row[col]).filter(v => v))];
+                    return `• ${col}: ${values.length}種類 (${values.slice(0, 5).join(', ')}${values.length > 5 ? '...' : ''})`;
+                }).join('<br>')}<br>
                 <br>
                 <strong>サンプルデータ:</strong><br>
                 ${data.slice(0, 3).map(row => 
-                    `請求先: "${row.請求先}", 決済種別: "${row.決済種別}"`
+                    `${row.日付} - ${row.請求先} - ${row.決済種別} - ${row.合計金額}円`
                 ).join('<br>')}
             `;
             updateDebugInfo(debugInfo);
             
             try {
-                // サマリー更新（フィルターされていないデータで）
-                updateSummary(data);
+                // 期間設定の初期化
+                initializeDateRange(data);
                 
-                // ページネーション付きでテーブル表示
-                updatePaginatedTable();
+                // DOM更新
+                updateSummaryAndTable(filteredData);
                 
                 // フィルター設定
                 setupFilters(data);
-                document.getElementById('filterSection').style.display = 'block';
                 
-                // データセクション表示
-                const dataSection = document.getElementById('dataSection');
-                if (dataSection) {
-                    dataSection.style.display = 'block';
-                }
+                // ソート機能設定
+                setupSortHandlers();
+                
+                document.getElementById('filterSection').style.display = 'block';
+                document.getElementById('dataSection').style.display = 'block';
                 
                 console.log('=== displayData関数実行完了 ===');
                 
@@ -352,8 +481,41 @@
                 console.error('displayData関数内でエラー:', error);
             }
         }
+
+        function initializeDateRange(data) {
+            const dates = data.map(row => row.日付).filter(date => date).sort();
+            if (dates.length > 0) {
+                document.getElementById('startDate').value = dates[0];
+                document.getElementById('endDate').value = dates[dates.length - 1];
+            }
+        }
+
+        function applyDateFilter() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            if (!startDate || !endDate) {
+                alert('開始日と終了日を両方設定してください');
+                return;
+            }
+            
+            filteredData = allData.filter(row => {
+                const rowDate = row.日付;
+                return rowDate && rowDate >= startDate && rowDate <= endDate;
+            });
+            
+            applyFilters();
+        }
+
+        function clearDateFilter() {
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            filteredData = [...allData];
+            applyFilters();
+        }
         
-        function updateSummary(data) {
+        function updateSummaryAndTable(data) {
+            // サマリー更新
             const totalCount = data.length;
             const totalSales = data.reduce((sum, row) => sum + (row.合計金額 || 0), 0);
             const dates = data.map(row => row.日付).filter(date => date).sort();
@@ -366,194 +528,160 @@
             if (totalCountEl) totalCountEl.textContent = totalCount.toLocaleString();
             if (totalSalesEl) totalSalesEl.textContent = totalSales.toLocaleString() + '円';
             if (dateRangeEl) dateRangeEl.textContent = dateRange;
-        }
-        
-        function updatePaginatedTable() {
-            const totalPages = Math.ceil(filteredData.length / pageSize);
-            const startIndex = (currentPage - 1) * pageSize;
-            const endIndex = Math.min(startIndex + pageSize, filteredData.length);
-            const currentPageData = filteredData.slice(startIndex, endIndex);
             
             // テーブル更新
             const tbody = document.getElementById('dataTableBody');
             if (tbody) {
                 tbody.innerHTML = '';
                 
-                currentPageData.forEach(row => {
+                data.forEach(row => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td>${row.日付 || '-'}</td>
+                        <td>${row.時間 || '-'}</td>
                         <td>${row.店舗名 || '-'}</td>
                         <td>${row.請求先 || '-'}</td>
                         <td>${(row.合計金額 || 0).toLocaleString()}円</td>
                         <td>${row.決済種別 || '-'}</td>
+                        <td>${row.伝票種別 || '-'}</td>
+                        <td>${row.商品名 || '-'}</td>
+                        <td>${(row.単価 || 0).toLocaleString()}円</td>
+                        <td>${row.数量 || '-'}</td>
+                        <td>${(row.割引 || 0).toLocaleString()}円</td>
+                        <td>${(row.消費税 || 0).toLocaleString()}円</td>
                     `;
                     tbody.appendChild(tr);
                 });
             }
-            
-            // ページネーション情報更新
-            updatePaginationControls(totalPages, startIndex, endIndex);
         }
-        
-        function updatePaginationControls(totalPages, startIndex, endIndex) {
-            // ページ情報表示
-            const paginationInfo = document.getElementById('paginationInfo');
-            if (paginationInfo) {
-                paginationInfo.textContent = `${startIndex + 1}-${endIndex} / ${filteredData.length}件 (${currentPage}/${totalPages}ページ)`;
-            }
-            
-            // ボタンの有効/無効制御
-            document.getElementById('firstBtn').disabled = currentPage === 1;
-            document.getElementById('prevBtn').disabled = currentPage === 1;
-            document.getElementById('nextBtn').disabled = currentPage === totalPages;
-            document.getElementById('lastBtn').disabled = currentPage === totalPages;
-            
-            // ページ番号ボタン生成
-            const pageNumbers = document.getElementById('pageNumbers');
-            if (pageNumbers) {
-                pageNumbers.innerHTML = '';
-                
-                const startPage = Math.max(1, currentPage - 2);
-                const endPage = Math.min(totalPages, currentPage + 2);
-                
-                for (let i = startPage; i <= endPage; i++) {
-                    const button = document.createElement('button');
-                    button.textContent = i;
-                    button.onclick = () => goToPage(i);
-                    if (i === currentPage) {
-                        button.classList.add('active');
+
+        function setupSortHandlers() {
+            const headers = document.querySelectorAll('th.sortable');
+            headers.forEach(header => {
+                header.addEventListener('click', () => {
+                    const column = header.dataset.column;
+                    
+                    if (sortColumn === column) {
+                        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        sortColumn = column;
+                        sortDirection = 'asc';
                     }
-                    pageNumbers.appendChild(button);
+                    
+                    // ソート状態をUIに反映
+                    headers.forEach(h => {
+                        h.classList.remove('sort-asc', 'sort-desc');
+                    });
+                    header.classList.add(sortDirection === 'asc' ? 'sort-asc' : 'sort-desc');
+                    
+                    sortData();
+                });
+            });
+        }
+
+        function sortData() {
+            if (!sortColumn) return;
+            
+            const currentData = getCurrentFilteredData();
+            currentData.sort((a, b) => {
+                let aVal = a[sortColumn] || '';
+                let bVal = b[sortColumn] || '';
+                
+                // 数値の場合は数値として比較
+                if (sortColumn === '合計金額' || sortColumn === '単価' || sortColumn === '数量' || sortColumn === '割引' || sortColumn === '消費税') {
+                    aVal = parseFloat(aVal) || 0;
+                    bVal = parseFloat(bVal) || 0;
                 }
+                
+                if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+                if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+            
+            updateSummaryAndTable(currentData);
+        }
+
+        function getCurrentFilteredData() {
+            // 期間フィルターを適用
+            let data = filteredData;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            if (startDate && endDate) {
+                data = data.filter(row => {
+                    const rowDate = row.日付;
+                    return rowDate && rowDate >= startDate && rowDate <= endDate;
+                });
             }
-        }
-        
-        // ページネーション関数
-        function goToFirstPage() {
-            currentPage = 1;
-            updatePaginatedTable();
-        }
-        
-        function goToPrevPage() {
-            if (currentPage > 1) {
-                currentPage--;
-                updatePaginatedTable();
-            }
-        }
-        
-        function goToNextPage() {
-            const totalPages = Math.ceil(filteredData.length / pageSize);
-            if (currentPage < totalPages) {
-                currentPage++;
-                updatePaginatedTable();
-            }
-        }
-        
-        function goToLastPage() {
-            const totalPages = Math.ceil(filteredData.length / pageSize);
-            currentPage = totalPages;
-            updatePaginatedTable();
-        }
-        
-        function goToPage(page) {
-            currentPage = page;
-            updatePaginatedTable();
-        }
-        
-        function changePageSize() {
-            pageSize = parseInt(document.getElementById('pageSize').value);
-            currentPage = 1; // ページをリセット
-            updatePaginatedTable();
+            
+            // 各フィルターを適用
+            const filters = {
+                department: Array.from(document.querySelectorAll('#departmentFilters input:checked')).map(cb => cb.value),
+                payment: Array.from(document.querySelectorAll('#paymentFilters input:checked')).map(cb => cb.value),
+                slip: Array.from(document.querySelectorAll('#slipFilters input:checked')).map(cb => cb.value),
+                store: Array.from(document.querySelectorAll('#storeFilters input:checked')).map(cb => cb.value),
+                product: Array.from(document.querySelectorAll('#productFilters input:checked')).map(cb => cb.value)
+            };
+            
+            return data.filter(row => {
+                return (filters.department.length === 0 || filters.department.includes(row.請求先)) &&
+                       (filters.payment.length === 0 || filters.payment.includes(row.決済種別)) &&
+                       (filters.slip.length === 0 || filters.slip.includes(row.伝票種別)) &&
+                       (filters.store.length === 0 || filters.store.includes(row.店舗名)) &&
+                       (filters.product.length === 0 || filters.product.includes(row.商品名));
+            });
         }
         
         function setupFilters(data) {
-            // 請求先フィルター
-            const departments = [...new Set(data.map(row => row.請求先).filter(d => d))];
-            const departmentContainer = document.getElementById('departmentFilters');
-            if (departmentContainer) {
-                departmentContainer.innerHTML = '';
-                
-                departments.forEach(dept => {
-                    const div = document.createElement('div');
-                    div.innerHTML = `
-                        <label style="display: flex; align-items: center; margin-bottom: 5px; font-size: 0.9em; cursor: pointer;">
-                            <input type="checkbox" checked style="margin-right: 8px;" value="${dept}">
-                            ${dept}
-                        </label>
-                    `;
-                    departmentContainer.appendChild(div);
-                });
-            }
+            const filterConfigs = [
+                { id: 'departmentFilters', column: '請求先' },
+                { id: 'paymentFilters', column: '決済種別' },
+                { id: 'slipFilters', column: '伝票種別' },
+                { id: 'storeFilters', column: '店舗名' },
+                { id: 'productFilters', column: '商品名' }
+            ];
             
-            // 決済種別フィルター
-            const payments = [...new Set(data.map(row => row.決済種別).filter(p => p))];
-            const paymentContainer = document.getElementById('paymentFilters');
-            if (paymentContainer) {
-                paymentContainer.innerHTML = '';
-                
-                payments.forEach(payment => {
-                    const div = document.createElement('div');
-                    div.innerHTML = `
-                        <label style="display: flex; align-items: center; margin-bottom: 5px; font-size: 0.9em; cursor: pointer;">
-                            <input type="checkbox" checked style="margin-right: 8px;" value="${payment}">
-                            ${payment}
-                        </label>
-                    `;
-                    paymentContainer.appendChild(div);
-                });
-            }
+            filterConfigs.forEach(config => {
+                const values = [...new Set(data.map(row => row[config.column]).filter(v => v))].sort();
+                const container = document.getElementById(config.id);
+                if (container) {
+                    container.innerHTML = '';
+                    
+                    values.forEach(value => {
+                        const label = document.createElement('label');
+                        label.innerHTML = `
+                            <input type="checkbox" checked value="${value}">
+                            ${value}
+                        `;
+                        container.appendChild(label);
+                    });
+                }
+            });
         }
         
-        function selectAllDepartments() {
-            const checkboxes = document.querySelectorAll('#departmentFilters input[type="checkbox"]');
-            checkboxes.forEach(cb => cb.checked = true);
+        function selectAllFilter(type) {
+            const selector = `#${type}Filters input[type="checkbox"]`;
+            document.querySelectorAll(selector).forEach(cb => cb.checked = true);
         }
         
-        function deselectAllDepartments() {
-            const checkboxes = document.querySelectorAll('#departmentFilters input[type="checkbox"]');
-            checkboxes.forEach(cb => cb.checked = false);
+        function deselectAllFilter(type) {
+            const selector = `#${type}Filters input[type="checkbox"]`;
+            document.querySelectorAll(selector).forEach(cb => cb.checked = false);
         }
         
         function applyFilters() {
             console.log('=== フィルター適用開始 ===');
             
-            const selectedDepartments = Array.from(
-                document.querySelectorAll('#departmentFilters input:checked')
-            ).map(cb => cb.value);
+            const currentData = getCurrentFilteredData();
             
-            const selectedPayments = Array.from(
-                document.querySelectorAll('#paymentFilters input:checked')
-            ).map(cb => cb.value);
+            console.log('フィルター後のデータ件数:', currentData.length);
             
-            console.log('選択された請求先:', selectedDepartments);
-            console.log('選択された決済種別:', selectedPayments);
+            updateSummaryAndTable(currentData);
             
-            // フィルター適用
-            filteredData = allData.filter(row => {
-                const departmentMatch = selectedDepartments.length === 0 || selectedDepartments.includes(row.請求先);
-                const paymentMatch = selectedPayments.length === 0 || selectedPayments.includes(row.決済種別);
-                return departmentMatch && paymentMatch;
-            });
-            
-            console.log('フィルター後のデータ件数:', filteredData.length);
-            
-            // ページを最初にリセット
-            currentPage = 1;
-            
-            // テーブル更新
-            updatePaginatedTable();
-            
-            // デバッグ情報更新
-            const debugInfo = `
-                <strong>フィルター適用結果:</strong><br>
-                • 選択された請求先: ${selectedDepartments.length > 0 ? selectedDepartments.join(', ') : '（すべて）'}<br>
-                • 選択された決済種別: ${selectedPayments.length > 0 ? selectedPayments.join(', ') : '（すべて）'}<br>
-                • フィルター前: ${allData.length}件<br>
-                • フィルター後: ${filteredData.length}件<br>
-                • 現在のページサイズ: ${pageSize}件<br>
-            `;
-            updateDebugInfo(debugInfo);
+            // ソートが適用されている場合は再ソート
+            if (sortColumn) {
+                sortData();
+            }
         }
         
         function resetFilters() {
@@ -563,60 +691,18 @@
             const checkboxes = document.querySelectorAll('#filterSection input[type="checkbox"]');
             checkboxes.forEach(cb => cb.checked = true);
             
-            // フィルターデータを全データに戻す
-            filteredData = allData;
-            currentPage = 1;
+            // 期間クリア
+            clearDateFilter();
             
-            // テーブル更新
-            updatePaginatedTable();
+            // ソート状態クリア
+            sortColumn = null;
+            sortDirection = 'asc';
+            document.querySelectorAll('th.sortable').forEach(h => {
+                h.classList.remove('sort-asc', 'sort-desc');
+            });
             
-            // デバッグ情報更新
-            const debugInfo = `
-                <strong>フィルターリセット完了:</strong><br>
-                • すべてのフィルターが選択状態に戻りました<br>
-                • 全${allData.length}件のデータを表示中
-            `;
-            updateDebugInfo(debugInfo);
-        }
-        
-        // データ取得関数を修正（全件取得）
-        async function fetchAllData() {
-            console.log('=== 全データ取得開始 ===');
-            
-            let allRecords = [];
-            let from = 0;
-            const limit = 1000; // Supabaseの制限に合わせて1000件ずつ取得
-            
-            while (true) {
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/sales_data?limit=${limit}&offset=${from}`, {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                
-                const data = await response.json();
-                console.log(`${from}件目から${from + data.length}件目までのデータを取得`);
-                
-                if (data.length === 0) {
-                    break; // データがない場合は終了
-                }
-                
-                allRecords = allRecords.concat(data);
-                
-                if (data.length < limit) {
-                    break; // 最後のバッチ（1000件未満）の場合は終了
-                }
-                
-                from += limit;
-            }
-            
-            console.log(`=== 全データ取得完了: ${allRecords.length}件 ===`);
-            return allRecords;
+            // 全データを表示
+            updateSummaryAndTable(allData);
         }
         
         // 接続テスト
@@ -626,19 +712,27 @@
             try {
                 document.getElementById('status').innerHTML = '<span class="loading">データベースからデータを取得中...</span>';
                 
-                // 全データを取得
-                const data = await fetchAllData();
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/sales_data`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
                 
-                console.log('データ取得成功:', data.length, '件');
+                console.log('レスポンス受信:', response.status);
                 
-                if (data.length > 0) {
-                    document.getElementById('status').innerHTML = `<span class="success">✅ ${data.length}件のデータを取得しました</span>`;
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('データ取得成功:', data.length, '件');
                     
-                    console.log('displayData関数を呼び出し中...');
-                    displayData(data);
-                    
+                    if (data.length > 0) {
+                        document.getElementById('status').innerHTML = `<span class="success">✅ ${data.length}件のデータを取得しました</span>`;
+                        displayData(data);
+                    } else {
+                        document.getElementById('status').innerHTML = '<span class="success">✅ 接続成功（データは空）</span>';
+                    }
                 } else {
-                    document.getElementById('status').innerHTML = '<span class="success">✅ 接続成功（データは空）</span>';
+                    throw new Error(`HTTP ${response.status}`);
                 }
                 
             } catch (error) {
