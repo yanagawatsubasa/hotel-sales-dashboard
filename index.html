@@ -602,7 +602,10 @@
         }
 
         function updatePaginationInfo() {
+            console.log('=== updatePaginationInfo 開始 ===');
             const currentData = getCurrentFilteredData();
+            console.log('updatePaginationInfo で取得したデータ件数:', currentData.length);
+            
             totalPages = Math.ceil(currentData.length / pageSize) || 1;
             
             if (currentPage > totalPages) {
@@ -624,7 +627,15 @@
             document.getElementById('lastBtn').disabled = currentPage >= totalPages;
             
             // 右下の総件数は常にフィルター結果の総件数を表示（ページに関係なく固定）
-            document.getElementById('tableFooterCount').textContent = `総件数: ${currentData.length}件`;
+            const footerElement = document.getElementById('tableFooterCount');
+            if (footerElement) {
+                footerElement.textContent = `総件数: ${currentData.length}件`;
+                console.log('右下総件数を設定:', currentData.length, '件');
+            } else {
+                console.error('tableFooterCount 要素が見つかりません');
+            }
+            
+            console.log('=== updatePaginationInfo 完了 ===');
         }
 
         function applyDateFilter() {
@@ -659,7 +670,11 @@
         }
         
         function updateTableAndPagination() {
+            console.log('=== updateTableAndPagination 開始 ===');
+            console.log('現在のページ:', currentPage);
+            
             const currentData = getCurrentFilteredData();
+            console.log('updateTableAndPagination で取得したデータ件数:', currentData.length);
             
             // サマリー更新（フィルター結果の全件に対して）
             const totalSales = currentData.reduce((sum, row) => sum + (row.合計金額 || 0), 0);
@@ -670,6 +685,12 @@
             document.getElementById('totalSales').textContent = totalSales.toLocaleString() + '円';
             document.getElementById('dateRange').textContent = dateRange;
             
+            console.log('サマリー更新:', {
+                totalCount: currentData.length,
+                totalSales: totalSales,
+                dateRange: dateRange
+            });
+            
             // ページネーション情報更新
             updatePaginationInfo();
             
@@ -679,6 +700,7 @@
             const pageData = currentData.slice(startIndex, endIndex);
             
             console.log(`ページ ${currentPage}: 全${currentData.length}件中 ${startIndex + 1}-${Math.min(endIndex, currentData.length)}件目を表示`);
+            console.log('表示用pageData件数:', pageData.length);
             
             // テーブル更新（現在ページの500件分のみ）
             const tbody = document.getElementById('dataTableBody');
@@ -706,6 +728,8 @@
                     tbody.appendChild(tr);
                 });
             }
+            
+            console.log('=== updateTableAndPagination 完了 ===');
         }
 
         function setupSortHandlers() {
