@@ -853,32 +853,68 @@
             try {
                 document.getElementById('status').innerHTML = '<span class="loading">データベースからデータを取得中...</span>';
                 
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/sales_data`, {
+                // Supabaseからの全件取得（制限なし）
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/sales_data?limit=50000`, {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Range': '0-49999' // 0-49999の範囲を指定（50000件まで取得可能）
                     }
                 });
                 
                 console.log('レスポンス受信:', response.status);
+                console.log('レスポンスヘッダー:', response.headers.get('Content-Range'));
                 
                 if (response.ok) {
                     const data = await response.json();
                     console.log('データ取得成功:', data.length, '件');
+                    console.log('期待件数: 3182件, 実際の取得件数:', data.length);
                     
                     if (data.length > 0) {
-                        document.getElementById('status').innerHTML = `<span class="success">✅ ${data.length}件のデータを取得しました</span>`;
+                        // 全件取得できているかチェック
+                        if (data.length >= 3180) {
+                            document.getElementById('status').innerHTML = `<span class="success">✅ ${data.length}件のデータを全件取得しました</span>`;
+                        } else {
+                            document.getElementById('status').innerHTML = `<span class="error">⚠️ ${data.length}件のデータを取得（全件取得できていない可能性があります）</span>`;
+                        }
+                        
+                        // データ取得成功のデバッグ情報
+                        console.log('データサンプル（最初の3件）:', data.slice(0, 3));
+                        console.log('データサンプル（最後の3件）:', data.slice(-3));
+                        
                         displayData(data);
                     } else {
                         document.getElementById('status').innerHTML = '<span class="success">✅ 接続成功（データは空）</span>';
                     }
                 } else {
-                    throw new Error(`HTTP ${response.status}`);
+                    throw new Error(`HTTP ${response.status} - ${response.statusText}`);
                 }
                 
             } catch (error) {
                 console.error('メインエラー:', error);
                 document.getElementById('status').innerHTML = `<span class="error">❌ 接続失敗: ${error.message}</span>`;
+                
+                // 制限にかかった可能性がある場合の代替手段
+                console.warn('代替取得方法を試行中...');
+                try {
+                    // Prefer ヘッダーを使用して全件取得を試行
+                    const fallbackResponse = await fetch(`${SUPABASE_URL}/rest/v1/sales_data`, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                            'Prefer': 'count=exact'
+                        }
+                    });
+                    
+                    if (fallbackResponse.ok) {
+                        const fallbackData = await fallbackResponse.json();
+                        console.log('代替方法での取得成功:', fallbackData.length, '件');
+                        document.getElementById('status').innerHTML = `<span class="success">✅ ${fallbackData.length}件のデータを取得しました（代替方法）</span>`;
+                        displayData(fallbackData);
+                    }
+                } catch (fallbackError) {
+                    console.error('代替方法も失敗:', fallbackError);
+                }
             }
         });
         
