@@ -538,9 +538,11 @@
             
             allData = [...data]; // 全データを保存
             filteredData = [...data]; // 初期状態は全データ
+            filtersApplied = false; // 初期状態ではフィルター未適用
             
             console.log('allData設定:', allData.length, '件');
             console.log('filteredData設定:', filteredData.length, '件');
+            console.log('filtersApplied初期化:', filtersApplied);
             
             const columns = ['請求先', '決済種別', '伝票種別', '店舗名', '商品名'];
             const debugInfo = `
