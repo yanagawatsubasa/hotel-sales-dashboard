@@ -680,7 +680,30 @@
         }
 
         function updateDisplay() {
+            console.log('=== updateDisplay 開始 ===');
+            
             const currentData = getCurrentData();
+            console.log('表示対象データ件数:', currentData.length);
+            
+            // ソートが適用されている場合はソート実行
+            if (sortColumn) {
+                console.log('ソート適用中:', sortColumn, sortDirection);
+                currentData.sort((a, b) => {
+                    let aVal = a[sortColumn] || '';
+                    let bVal = b[sortColumn] || '';
+                    
+                    // 数値列の場合は数値として比較
+                    if (['合計金額', '単価', '数量', '割引', '消費税'].includes(sortColumn)) {
+                        aVal = parseFloat(aVal) || 0;
+                        bVal = parseFloat(bVal) || 0;
+                    }
+                    
+                    if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+                    if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+                    return 0;
+                });
+            }
+            
             totalPages = Math.ceil(currentData.length / pageSize) || 1;
             
             if (currentPage > totalPages) {
@@ -714,8 +737,10 @@
             // 右下の総件数（常に固定）
             document.getElementById('tableFooterCount').textContent = `総件数: ${currentData.length}件`;
             
-            // テーブル更新（現在ページのデータのみ）
+            // テーブル更新
             updateTable(currentData);
+            
+            console.log('=== updateDisplay 完了 ===');
         }
 
         function updateTable(data) {
@@ -785,6 +810,7 @@
                 return;
             }
             
+            // 常にgetCurrentData()を使用してフィルター済みデータを取得
             const currentData = getCurrentData();
             console.log('ソート前データ件数:', currentData.length);
             
@@ -806,49 +832,10 @@
             
             console.log('ソート完了:', currentData.length, '件');
             
-            // ソート後のデータで表示更新（ソート済みデータを直接渡す）
-            updateDisplayWithSortedData(currentData);
+            // 通常のupdateDisplayを使用（データ整合性を保つため）
+            updateDisplay();
             
             console.log('=== ソート処理完了 ===');
-        }
-
-        function updateDisplayWithSortedData(sortedData) {
-            // ソート済みデータを使用して表示更新
-            totalPages = Math.ceil(sortedData.length / pageSize) || 1;
-            
-            if (currentPage > totalPages) {
-                currentPage = totalPages;
-            }
-            
-            // サマリー更新
-            const totalSales = sortedData.reduce((sum, row) => sum + (row.合計金額 || 0), 0);
-            const dateRange = getDateRange(sortedData);
-            
-            document.getElementById('totalCount').textContent = sortedData.length.toLocaleString();
-            document.getElementById('totalSales').textContent = totalSales.toLocaleString() + '円';
-            document.getElementById('dateRange').textContent = dateRange;
-            
-            // ページネーション情報更新
-            const startIndex = (currentPage - 1) * pageSize + 1;
-            const endIndex = Math.min(currentPage * pageSize, sortedData.length);
-            
-            document.getElementById('paginationInfo').textContent = 
-                `${sortedData.length}件中 ${startIndex}-${endIndex}件を表示`;
-            document.getElementById('totalPages').textContent = totalPages;
-            document.getElementById('pageInput').value = currentPage;
-            document.getElementById('pageInput').max = totalPages;
-            
-            // ボタン状態更新
-            document.getElementById('firstBtn').disabled = currentPage <= 1;
-            document.getElementById('prevBtn').disabled = currentPage <= 1;
-            document.getElementById('nextBtn').disabled = currentPage >= totalPages;
-            document.getElementById('lastBtn').disabled = currentPage >= totalPages;
-            
-            // 右下の総件数（常に固定）
-            document.getElementById('tableFooterCount').textContent = `総件数: ${sortedData.length}件`;
-            
-            // テーブル更新（ソート済みデータを使用）
-            updateTable(sortedData);
         }
 
         function goToPage(page) {
