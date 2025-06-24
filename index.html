@@ -590,7 +590,7 @@
         }
 
         // フィルター適用
-        function applyFilters() {
+        function applyCurrentFilters() {
             console.log('=== フィルター適用処理開始 ===');
             
             let data = [...allData];
@@ -779,7 +779,7 @@
             }
             
             currentPage = 1;
-            applyFilters();
+            applyCurrentFilters();
             updateDisplay();
         }
 
@@ -787,7 +787,7 @@
             document.getElementById('startDate').value = '';
             document.getElementById('endDate').value = '';
             currentPage = 1;
-            applyFilters();
+            applyCurrentFilters();
             updateDisplay();
         }
 
@@ -833,7 +833,7 @@
             console.log('=== カテゴリフィルター適用 ===');
             filtersEnabled = true;
             currentPage = 1;
-            applyFilters();
+            applyCurrentFilters();
             updateDisplay();
         }
         
@@ -855,7 +855,7 @@
             });
             
             currentPage = 1;
-            applyFilters();
+            applyCurrentFilters();
             updateDisplay();
         }
 
