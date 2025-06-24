@@ -353,7 +353,7 @@
     <div class="container">
         <div class="header">
             <h1>🏨 ホテル売上管理ダッシュボード</h1>
-            <p>ページネーション対応版 - 500件ずつ表示</p>
+            <p>修正版 - 総件数固定対応</p>
         </div>
         
         <div class="section">
@@ -516,13 +516,13 @@
         const SUPABASE_URL = 'https://ypohqgcfdcdykvlanhgf.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlwb2hxZ2NmZGNkeWt2bGFuaGdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAyODg5NTgsImV4cCI6MjA2NTg2NDk1OH0.RMaAA4tFQC5rvQ49qy13F2-2cJslTQwIT1jxYGcSqXc';
         
+        // グローバル変数 - シンプルに
         let allData = [];
-        let filteredData = [];
-        let sortColumn = null;
-        let sortDirection = 'asc';
         let currentPage = 1;
         let pageSize = 500;
         let totalPages = 1;
+        let sortColumn = null;
+        let sortDirection = 'asc';
         
         function updateDebugInfo(info) {
             const debugEl = document.getElementById('debugInfo');
@@ -531,27 +531,73 @@
                 document.getElementById('debugSection').style.display = 'block';
             }
         }
-        
+
+        async function fetchAllData() {
+            console.log('=== 全件データ取得開始 ===');
+            let allData = [];
+            let offset = 0;
+            const batchSize = 1000;
+            let hasMore = true;
+            
+            while (hasMore) {
+                try {
+                    console.log(`バッチ ${Math.floor(offset / batchSize) + 1}: ${offset}件目から${offset + batchSize - 1}件目まで取得中...`);
+                    
+                    const response = await fetch(`${SUPABASE_URL}/rest/v1/sales_data?limit=${batchSize}&offset=${offset}`, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                            'Prefer': 'count=exact'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+                    }
+                    
+                    const batchData = await response.json();
+                    console.log(`バッチ ${Math.floor(offset / batchSize) + 1}: ${batchData.length}件取得`);
+                    
+                    if (batchData.length === 0) {
+                        hasMore = false;
+                        break;
+                    }
+                    
+                    allData = allData.concat(batchData);
+                    offset += batchSize;
+                    
+                    if (offset > 10000) {
+                        console.warn('安全制限により取得を停止（10000件）');
+                        hasMore = false;
+                    }
+                    
+                    if (batchData.length < batchSize) {
+                        hasMore = false;
+                    }
+                    
+                    document.getElementById('status').innerHTML = 
+                        `<span class="loading">データ取得中... ${allData.length}件</span>`;
+                        
+                } catch (error) {
+                    console.error(`バッチ ${Math.floor(offset / batchSize) + 1} でエラー:`, error);
+                    hasMore = false;
+                }
+            }
+            
+            console.log(`=== 全件データ取得完了: ${allData.length}件 ===`);
+            return allData;
+        }
+
         function displayData(data) {
             console.log('=== displayData関数実行開始 ===');
             console.log('受信データ:', data.length, '件');
             
-            allData = [...data]; // 全データを保存
-            filteredData = [...data]; // 初期状態は全データ
-            filtersApplied = false; // 初期状態ではフィルター未適用
+            allData = [...data];
             
-            console.log('allData設定:', allData.length, '件');
-            console.log('filteredData設定:', filteredData.length, '件');
-            console.log('filtersApplied初期化:', filtersApplied);
-            
-            const columns = ['請求先', '決済種別', '伝票種別', '店舗名', '商品名'];
             const debugInfo = `
                 <strong>データ分析結果:</strong><br>
                 • 総件数: ${data.length}件<br>
-                ${columns.map(col => {
-                    const values = [...new Set(data.map(row => row[col]).filter(v => v))];
-                    return `• ${col}: ${values.length}種類 (${values.slice(0, 5).join(', ')}${values.length > 5 ? '...' : ''})`;
-                }).join('<br>')}<br>
+                • データ期間: ${getDateRange(data)}<br>
                 <br>
                 <strong>サンプルデータ:</strong><br>
                 ${data.slice(0, 3).map(row => 
@@ -561,19 +607,9 @@
             updateDebugInfo(debugInfo);
             
             try {
-                // 期間設定の初期化（空に設定）
-                initializeDateRange(data);
-                
-                // ページネーション初期化
                 initializePagination();
-                
-                // 初回表示
-                updateTableAndPagination();
-                
-                // フィルター設定
+                updateDisplay();
                 setupFilters(data);
-                
-                // ソート機能設定
                 setupSortHandlers();
                 
                 document.getElementById('filterSection').style.display = 'block';
@@ -586,34 +622,50 @@
             }
         }
 
-        function initializeDateRange(data) {
+        function getDateRange(data) {
             const dates = data.map(row => row.日付).filter(date => date).sort();
-            if (dates.length > 0) {
-                // 期間設定は空のままにして、初期状態では期間フィルターを適用しない
-                document.getElementById('startDate').value = '';
-                document.getElementById('endDate').value = '';
-                console.log('期間設定初期化: フィルター無し（全期間表示）');
-                console.log('データ期間:', dates[0], '〜', dates[dates.length - 1]);
-            }
+            return dates.length > 0 ? `${dates[0]} 〜 ${dates[dates.length - 1]}` : '-';
         }
 
         function initializePagination() {
             currentPage = 1;
             pageSize = parseInt(document.getElementById('pageSize').value);
-            updatePaginationInfo();
         }
 
-        function updatePaginationInfo() {
-            console.log('=== updatePaginationInfo 開始 ===');
-            const currentData = getCurrentFilteredData();
-            console.log('updatePaginationInfo で取得したデータ件数:', currentData.length);
+        function getCurrentData() {
+            // 期間フィルター
+            const startDate = document.getElementById('startDate')?.value || '';
+            const endDate = document.getElementById('endDate')?.value || '';
             
+            let data = [...allData];
+            
+            if (startDate.trim() !== '' && endDate.trim() !== '') {
+                data = data.filter(row => {
+                    const rowDate = row.日付;
+                    return rowDate && rowDate >= startDate && rowDate <= endDate;
+                });
+            }
+            
+            return data;
+        }
+
+        function updateDisplay() {
+            const currentData = getCurrentData();
             totalPages = Math.ceil(currentData.length / pageSize) || 1;
             
             if (currentPage > totalPages) {
                 currentPage = totalPages;
             }
             
+            // サマリー更新
+            const totalSales = currentData.reduce((sum, row) => sum + (row.合計金額 || 0), 0);
+            const dateRange = getDateRange(currentData);
+            
+            document.getElementById('totalCount').textContent = currentData.length.toLocaleString();
+            document.getElementById('totalSales').textContent = totalSales.toLocaleString() + '円';
+            document.getElementById('dateRange').textContent = dateRange;
+            
+            // ページネーション情報更新
             const startIndex = (currentPage - 1) * pageSize + 1;
             const endIndex = Math.min(currentPage * pageSize, currentData.length);
             
@@ -623,94 +675,32 @@
             document.getElementById('pageInput').value = currentPage;
             document.getElementById('pageInput').max = totalPages;
             
+            // ボタン状態更新
             document.getElementById('firstBtn').disabled = currentPage <= 1;
             document.getElementById('prevBtn').disabled = currentPage <= 1;
             document.getElementById('nextBtn').disabled = currentPage >= totalPages;
             document.getElementById('lastBtn').disabled = currentPage >= totalPages;
             
-            // 右下の総件数は常にフィルター結果の総件数を表示（ページに関係なく固定）
-            const footerElement = document.getElementById('tableFooterCount');
-            if (footerElement) {
-                footerElement.textContent = `総件数: ${currentData.length}件`;
-                console.log('右下総件数を設定:', currentData.length, '件');
-            } else {
-                console.error('tableFooterCount 要素が見つかりません');
-            }
+            // 右下の総件数（常に固定）
+            document.getElementById('tableFooterCount').textContent = `総件数: ${currentData.length}件`;
             
-            console.log('=== updatePaginationInfo 完了 ===');
+            // テーブル更新（現在ページのデータのみ）
+            updateTable(currentData);
         }
 
-        function applyDateFilter() {
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
-            
-            if (!startDate || !endDate) {
-                alert('開始日と終了日を両方設定してください');
-                return;
-            }
-            
-            filteredData = allData.filter(row => {
-                const rowDate = row.日付;
-                return rowDate && rowDate >= startDate && rowDate <= endDate;
-            });
-            
-            currentPage = 1;
-            applyFilters();
-        }
-
-        function clearDateFilter() {
-            console.log('=== clearDateFilter 実行 ===');
-            document.getElementById('startDate').value = '';
-            document.getElementById('endDate').value = '';
-            
-            // filteredDataを全データに戻す
-            filteredData = [...allData];
-            console.log('filteredData を全データに戻しました:', filteredData.length, '件');
-            
-            currentPage = 1;
-            applyFilters();
-        }
-        
-        function updateTableAndPagination() {
-            console.log('=== updateTableAndPagination 開始 ===');
-            console.log('現在のページ:', currentPage);
-            
-            const currentData = getCurrentFilteredData();
-            console.log('updateTableAndPagination で取得したデータ件数:', currentData.length);
-            
-            // サマリー更新（フィルター結果の全件に対して）
-            const totalSales = currentData.reduce((sum, row) => sum + (row.合計金額 || 0), 0);
-            const dates = currentData.map(row => row.日付).filter(date => date).sort();
-            const dateRange = dates.length > 0 ? `${dates[0]} 〜 ${dates[dates.length - 1]}` : '-';
-            
-            document.getElementById('totalCount').textContent = currentData.length.toLocaleString();
-            document.getElementById('totalSales').textContent = totalSales.toLocaleString() + '円';
-            document.getElementById('dateRange').textContent = dateRange;
-            
-            console.log('サマリー更新:', {
-                totalCount: currentData.length,
-                totalSales: totalSales,
-                dateRange: dateRange
-            });
-            
-            // ページネーション情報更新
-            updatePaginationInfo();
-            
-            // 現在のページのデータを取得（表示用）
+        function updateTable(data) {
             const startIndex = (currentPage - 1) * pageSize;
             const endIndex = startIndex + pageSize;
-            const pageData = currentData.slice(startIndex, endIndex);
+            const pageData = data.slice(startIndex, endIndex);
             
-            console.log(`ページ ${currentPage}: 全${currentData.length}件中 ${startIndex + 1}-${Math.min(endIndex, currentData.length)}件目を表示`);
-            console.log('表示用pageData件数:', pageData.length);
+            console.log(`ページ ${currentPage}: 全${data.length}件中 ${startIndex + 1}-${Math.min(endIndex, data.length)}件目を表示`);
             
-            // テーブル更新（現在ページの500件分のみ）
             const tbody = document.getElementById('dataTableBody');
             if (tbody) {
                 tbody.innerHTML = '';
                 
                 pageData.forEach((row, index) => {
-                    const globalIndex = startIndex + index + 1; // フィルター結果全体での行番号
+                    const globalIndex = startIndex + index + 1;
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td>${globalIndex}</td>
@@ -730,8 +720,6 @@
                     tbody.appendChild(tr);
                 });
             }
-            
-            console.log('=== updateTableAndPagination 完了 ===');
         }
 
         function setupSortHandlers() {
@@ -753,15 +741,15 @@
                     header.classList.add(sortDirection === 'asc' ? 'sort-asc' : 'sort-desc');
                     
                     currentPage = 1;
-                    sortAndUpdateTable();
+                    sortAndUpdate();
                 });
             });
         }
 
-        function sortAndUpdateTable() {
+        function sortAndUpdate() {
             if (!sortColumn) return;
             
-            const currentData = getCurrentFilteredData();
+            const currentData = getCurrentData();
             currentData.sort((a, b) => {
                 let aVal = a[sortColumn] || '';
                 let bVal = b[sortColumn] || '';
@@ -776,91 +764,22 @@
                 return 0;
             });
             
-            updateTableAndPagination();
-        }
-
-        function getCurrentFilteredData() {
-            // デバッグ: 関数呼び出し時の状態を記録
-            console.log('=== getCurrentFilteredData 呼び出し ===');
-            console.log('filteredData件数:', filteredData.length);
-            
-            // ベースデータは常にfilteredData（期間フィルターやリセットで更新される）
-            let data = [...filteredData]; // 配列のコピーを作成
-            
-            // 期間フィルターチェック
-            const startDate = document.getElementById('startDate')?.value || '';
-            const endDate = document.getElementById('endDate')?.value || '';
-            
-            console.log('期間設定:', { startDate, endDate });
-            
-            // 期間フィルターは明示的に両方設定されている場合のみ適用
-            if (startDate.trim() !== '' && endDate.trim() !== '') {
-                console.log('期間フィルター適用中...');
-                const beforeCount = data.length;
-                data = data.filter(row => {
-                    const rowDate = row.日付;
-                    return rowDate && rowDate >= startDate && rowDate <= endDate;
-                });
-                console.log(`期間フィルター: ${beforeCount}件 → ${data.length}件`);
-            } else {
-                console.log('期間フィルター: 適用なし（全期間）');
-            }
-            
-            // カテゴリフィルターの取得（存在チェック付き）
-            const departmentInputs = document.querySelectorAll('#departmentFilters input:checked');
-            const paymentInputs = document.querySelectorAll('#paymentFilters input:checked');
-            const slipInputs = document.querySelectorAll('#slipFilters input:checked');
-            const storeInputs = document.querySelectorAll('#storeFilters input:checked');
-            const productInputs = document.querySelectorAll('#productFilters input:checked');
-            
-            const filters = {
-                department: departmentInputs ? Array.from(departmentInputs).map(cb => cb.value) : [],
-                payment: paymentInputs ? Array.from(paymentInputs).map(cb => cb.value) : [],
-                slip: slipInputs ? Array.from(slipInputs).map(cb => cb.value) : [],
-                store: storeInputs ? Array.from(storeInputs).map(cb => cb.value) : [],
-                product: productInputs ? Array.from(productInputs).map(cb => cb.value) : []
-            };
-            
-            console.log('カテゴリフィルター:', {
-                department: filters.department.length,
-                payment: filters.payment.length,
-                slip: filters.slip.length,
-                store: filters.store.length,
-                product: filters.product.length
-            });
-            
-            // カテゴリフィルター適用
-            const beforeCategoryFilter = data.length;
-            const result = data.filter(row => {
-                const deptMatch = filters.department.length === 0 || filters.department.includes(row.請求先);
-                const paymentMatch = filters.payment.length === 0 || filters.payment.includes(row.決済種別);
-                const slipMatch = filters.slip.length === 0 || filters.slip.includes(row.伝票種別);
-                const storeMatch = filters.store.length === 0 || filters.store.includes(row.店舗名);
-                const productMatch = filters.product.length === 0 || filters.product.includes(row.商品名);
-                
-                return deptMatch && paymentMatch && slipMatch && storeMatch && productMatch;
-            });
-            
-            console.log(`カテゴリフィルター: ${beforeCategoryFilter}件 → ${result.length}件`);
-            console.log('=== getCurrentFilteredData 結果:', result.length, '件 ===');
-            
-            return result;
+            updateDisplay();
         }
 
         function goToPage(page) {
             console.log('=== goToPage 呼び出し ===', 'ページ:', page);
             if (page < 1 || page > totalPages) {
-                console.log('無効なページ番号:', page, '有効範囲: 1-', totalPages);
+                console.log('無効なページ番号:', page);
                 return;
             }
             currentPage = page;
             console.log('currentPage を更新:', currentPage);
             
-            updateTableAndPagination();
+            updateDisplay();
             
             if (sortColumn) {
-                console.log('ソート再適用:', sortColumn, sortDirection);
-                sortAndUpdateTable();
+                sortAndUpdate();
             }
         }
 
@@ -872,11 +791,31 @@
         function changePageSize() {
             pageSize = parseInt(document.getElementById('pageSize').value);
             currentPage = 1;
-            updateTableAndPagination();
+            updateDisplay();
             
             if (sortColumn) {
-                sortAndUpdateTable();
+                sortAndUpdate();
             }
+        }
+
+        function applyDateFilter() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            if (!startDate || !endDate) {
+                alert('開始日と終了日を両方設定してください');
+                return;
+            }
+            
+            currentPage = 1;
+            updateDisplay();
+        }
+
+        function clearDateFilter() {
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            currentPage = 1;
+            updateDisplay();
         }
         
         function setupFilters(data) {
@@ -918,13 +857,7 @@
         
         function applyFilters() {
             console.log('=== フィルター適用開始 ===');
-            
-            currentPage = 1;
-            updateTableAndPagination();
-            
-            if (sortColumn) {
-                sortAndUpdateTable();
-            }
+            alert('フィルター機能は現在無効化されています。ページ送り機能のテスト中です。');
         }
         
         function resetFilters() {
@@ -942,84 +875,19 @@
             });
             
             currentPage = 1;
-            filteredData = [...allData];
-            updateTableAndPagination();
+            updateDisplay();
         }
         
-        async function fetchAllData() {
-            console.log('=== 全件データ取得開始 ===');
-            let allData = [];
-            let offset = 0;
-            const batchSize = 1000; // 1回あたり1000件ずつ取得
-            let hasMore = true;
-            
-            while (hasMore) {
-                try {
-                    console.log(`バッチ ${Math.floor(offset / batchSize) + 1}: ${offset}件目から${offset + batchSize - 1}件目まで取得中...`);
-                    
-                    const response = await fetch(`${SUPABASE_URL}/rest/v1/sales_data?limit=${batchSize}&offset=${offset}`, {
-                        headers: {
-                            'apikey': SUPABASE_ANON_KEY,
-                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                            'Prefer': 'count=exact'
-                        }
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status} - ${response.statusText}`);
-                    }
-                    
-                    const batchData = await response.json();
-                    console.log(`バッチ ${Math.floor(offset / batchSize) + 1}: ${batchData.length}件取得`);
-                    
-                    if (batchData.length === 0) {
-                        hasMore = false;
-                        break;
-                    }
-                    
-                    allData = allData.concat(batchData);
-                    offset += batchSize;
-                    
-                    // 安全のため：10000件を超えたら停止（無限ループ防止）
-                    if (offset > 10000) {
-                        console.warn('安全制限により取得を停止（10000件）');
-                        hasMore = false;
-                    }
-                    
-                    // 1000件未満の場合は最後のバッチ
-                    if (batchData.length < batchSize) {
-                        hasMore = false;
-                    }
-                    
-                    // UI更新
-                    document.getElementById('status').innerHTML = 
-                        `<span class="loading">データ取得中... ${allData.length}件</span>`;
-                        
-                } catch (error) {
-                    console.error(`バッチ ${Math.floor(offset / batchSize) + 1} でエラー:`, error);
-                    hasMore = false;
-                }
-            }
-            
-            console.log(`=== 全件データ取得完了: ${allData.length}件 ===`);
-            return allData;
-        }
-
         window.addEventListener('load', async function() {
             console.log('=== ページ読み込み完了 ===');
             
             try {
                 document.getElementById('status').innerHTML = '<span class="loading">データベースからデータを取得中...</span>';
                 
-                // 全件データ取得
                 const data = await fetchAllData();
                 
                 if (data.length > 0) {
                     document.getElementById('status').innerHTML = `<span class="success">✅ ${data.length}件のデータを全件取得しました</span>`;
-                    
-                    console.log('データサンプル（最初の3件）:', data.slice(0, 3));
-                    console.log('データサンプル（最後の3件）:', data.slice(-3));
-                    
                     displayData(data);
                 } else {
                     document.getElementById('status').innerHTML = '<span class="error">❌ データが取得できませんでした</span>';
