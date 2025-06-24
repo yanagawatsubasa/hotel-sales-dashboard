@@ -353,7 +353,7 @@
     <div class="container">
         <div class="header">
             <h1>🏨 ホテル売上管理ダッシュボード</h1>
-            <p>完全版 - 全機能対応</p>
+            <p>最終修正版 - ページ送り時件数固定</p>
         </div>
         
         <div class="section">
@@ -516,8 +516,9 @@
         const SUPABASE_URL = 'https://ypohqgcfdcdykvlanhgf.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlwb2hxZ2NmZGNkeWt2bGFuaGdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAyODg5NTgsImV4cCI6MjA2NTg2NDk1OH0.RMaAA4tFQC5rvQ49qy13F2-2cJslTQwIT1jxYGcSqXc';
         
-        // グローバル変数 - シンプルに
-        let allData = [];
+        // === グローバル変数 ===
+        let allData = [];           // 全データ（変更不可）
+        let displayData = [];       // 現在表示対象のデータ（フィルター結果）
         let currentPage = 1;
         let pageSize = 500;
         let totalPages = 1;
@@ -588,111 +589,72 @@
             return allData;
         }
 
-        function displayData(data) {
-            console.log('=== displayData関数実行開始 ===');
-            console.log('受信データ:', data.length, '件');
+        // === データ処理関数 ===
+        function applyCurrentFilters() {
+            console.log('=== フィルター適用処理開始 ===');
             
-            allData = [...data];
-            
-            const debugInfo = `
-                <strong>データ分析結果:</strong><br>
-                • 総件数: ${data.length}件<br>
-                • データ期間: ${getDateRange(data)}<br>
-                <br>
-                <strong>サンプルデータ:</strong><br>
-                ${data.slice(0, 3).map(row => 
-                    `${row.日付} - ${row.請求先} - ${row.決済種別} - ${row.合計金額}円`
-                ).join('<br>')}
-            `;
-            updateDebugInfo(debugInfo);
-            
-            try {
-                initializePagination();
-                updateDisplay();
-                setupFilters(data);
-                setupSortHandlers();
-                
-                document.getElementById('filterSection').style.display = 'block';
-                document.getElementById('dataSection').style.display = 'block';
-                
-                console.log('=== displayData関数実行完了 ===');
-                
-            } catch (error) {
-                console.error('displayData関数内でエラー:', error);
-            }
-        }
-
-        function getDateRange(data) {
-            const dates = data.map(row => row.日付).filter(date => date).sort();
-            return dates.length > 0 ? `${dates[0]} 〜 ${dates[dates.length - 1]}` : '-';
-        }
-
-        function initializePagination() {
-            currentPage = 1;
-            pageSize = parseInt(document.getElementById('pageSize').value);
-        }
-
-        function getCurrentData() {
-            console.log('=== getCurrentData 開始 ===');
+            let data = [...allData];
+            console.log('ベースデータ件数:', data.length);
             
             // 期間フィルター
             const startDate = document.getElementById('startDate')?.value || '';
             const endDate = document.getElementById('endDate')?.value || '';
             
-            let data = [...allData];
-            console.log('ベースデータ件数:', data.length);
-            
-            // 期間フィルター適用
             if (startDate.trim() !== '' && endDate.trim() !== '') {
                 console.log('期間フィルター適用:', startDate, '〜', endDate);
                 data = data.filter(row => {
                     const rowDate = row.日付;
                     return rowDate && rowDate >= startDate && rowDate <= endDate;
                 });
-                console.log('期間フィルター後件数:', data.length);
+                console.log('期間フィルター後:', data.length, '件');
             } else {
                 console.log('期間フィルター: 適用なし');
             }
             
-            // カテゴリフィルター適用
-            const filterConfigs = [
-                { selector: '#departmentFilters input[type="checkbox"]:checked', column: '請求先' },
-                { selector: '#paymentFilters input[type="checkbox"]:checked', column: '決済種別' },
-                { selector: '#slipFilters input[type="checkbox"]:checked', column: '伝票種別' },
-                { selector: '#storeFilters input[type="checkbox"]:checked', column: '店舗名' },
-                { selector: '#productFilters input[type="checkbox"]:checked', column: '商品名' }
-            ];
+            // カテゴリフィルター（フィルター適用ボタンが押された場合のみ）
+            if (window.filtersEnabled) {
+                console.log('カテゴリフィルター適用中...');
+                
+                const filterConfigs = [
+                    { selector: '#departmentFilters input[type="checkbox"]:checked', column: '請求先' },
+                    { selector: '#paymentFilters input[type="checkbox"]:checked', column: '決済種別' },
+                    { selector: '#slipFilters input[type="checkbox"]:checked', column: '伝票種別' },
+                    { selector: '#storeFilters input[type="checkbox"]:checked', column: '店舗名' },
+                    { selector: '#productFilters input[type="checkbox"]:checked', column: '商品名' }
+                ];
+                
+                filterConfigs.forEach(config => {
+                    const checkedInputs = document.querySelectorAll(config.selector);
+                    if (checkedInputs.length > 0) {
+                        const selectedValues = Array.from(checkedInputs).map(input => input.value);
+                        const beforeCount = data.length;
+                        
+                        data = data.filter(row => selectedValues.includes(row[config.column]));
+                        
+                        console.log(`${config.column}フィルター: ${beforeCount}件 → ${data.length}件`);
+                    }
+                });
+            } else {
+                console.log('カテゴリフィルター: 無効（初期状態）');
+            }
             
-            filterConfigs.forEach(config => {
-                const checkedInputs = document.querySelectorAll(config.selector);
-                if (checkedInputs.length > 0) {
-                    const selectedValues = Array.from(checkedInputs).map(input => input.value);
-                    const beforeCount = data.length;
-                    
-                    data = data.filter(row => selectedValues.includes(row[config.column]));
-                    
-                    console.log(`${config.column}フィルター: ${beforeCount}件 → ${data.length}件 (選択: ${selectedValues.length}項目)`);
-                }
-            });
-            
-            console.log('=== getCurrentData 結果:', data.length, '件 ===');
-            return data;
+            displayData = data;
+            console.log('=== フィルター適用完了:', displayData.length, '件 ===');
         }
 
         function updateDisplay() {
             console.log('=== updateDisplay 開始 ===');
+            console.log('表示対象データ件数:', displayData.length);
             
-            const currentData = getCurrentData();
-            console.log('表示対象データ件数:', currentData.length);
+            let currentData = [...displayData];
             
-            // ソートが適用されている場合はソート実行
+            // ソート適用
             if (sortColumn) {
-                console.log('ソート適用中:', sortColumn, sortDirection);
+                console.log('ソート適用:', sortColumn, sortDirection);
                 currentData.sort((a, b) => {
                     let aVal = a[sortColumn] || '';
                     let bVal = b[sortColumn] || '';
                     
-                    // 数値列の場合は数値として比較
                     if (['合計金額', '単価', '数量', '割引', '消費税'].includes(sortColumn)) {
                         aVal = parseFloat(aVal) || 0;
                         bVal = parseFloat(bVal) || 0;
@@ -704,21 +666,20 @@
                 });
             }
             
+            // ページネーション計算
             totalPages = Math.ceil(currentData.length / pageSize) || 1;
-            
-            if (currentPage > totalPages) {
-                currentPage = totalPages;
-            }
+            if (currentPage > totalPages) currentPage = totalPages;
             
             // サマリー更新
             const totalSales = currentData.reduce((sum, row) => sum + (row.合計金額 || 0), 0);
-            const dateRange = getDateRange(currentData);
+            const dates = currentData.map(row => row.日付).filter(date => date).sort();
+            const dateRange = dates.length > 0 ? `${dates[0]} 〜 ${dates[dates.length - 1]}` : '-';
             
             document.getElementById('totalCount').textContent = currentData.length.toLocaleString();
             document.getElementById('totalSales').textContent = totalSales.toLocaleString() + '円';
             document.getElementById('dateRange').textContent = dateRange;
             
-            // ページネーション情報更新
+            // ページネーション情報
             const startIndex = (currentPage - 1) * pageSize + 1;
             const endIndex = Math.min(currentPage * pageSize, currentData.length);
             
@@ -728,13 +689,13 @@
             document.getElementById('pageInput').value = currentPage;
             document.getElementById('pageInput').max = totalPages;
             
-            // ボタン状態更新
+            // ボタン状態
             document.getElementById('firstBtn').disabled = currentPage <= 1;
             document.getElementById('prevBtn').disabled = currentPage <= 1;
             document.getElementById('nextBtn').disabled = currentPage >= totalPages;
             document.getElementById('lastBtn').disabled = currentPage >= totalPages;
             
-            // 右下の総件数（常に固定）
+            // 右下総件数（常に固定）
             document.getElementById('tableFooterCount').textContent = `総件数: ${currentData.length}件`;
             
             // テーブル更新
@@ -777,6 +738,54 @@
             }
         }
 
+        // === 初期化関数 ===
+        function displayData(data) {
+            console.log('=== displayData 開始 ===');
+            console.log('受信データ:', data.length, '件');
+            
+            allData = [...data];
+            displayData = [...data];  // 初期状態は全データ
+            window.filtersEnabled = false;  // 初期状態ではフィルター無効
+            
+            const debugInfo = `
+                <strong>データ分析結果:</strong><br>
+                • 総件数: ${data.length}件<br>
+                • データ期間: ${getDateRange(data)}<br>
+                <br>
+                <strong>サンプルデータ:</strong><br>
+                ${data.slice(0, 3).map(row => 
+                    `${row.日付} - ${row.請求先} - ${row.決済種別} - ${row.合計金額}円`
+                ).join('<br>')}
+            `;
+            updateDebugInfo(debugInfo);
+            
+            try {
+                initializePagination();
+                updateDisplay();
+                setupFilters(data);
+                setupSortHandlers();
+                
+                document.getElementById('filterSection').style.display = 'block';
+                document.getElementById('dataSection').style.display = 'block';
+                
+                console.log('=== displayData 完了 ===');
+                
+            } catch (error) {
+                console.error('displayData関数内でエラー:', error);
+            }
+        }
+
+        function getDateRange(data) {
+            const dates = data.map(row => row.日付).filter(date => date).sort();
+            return dates.length > 0 ? `${dates[0]} 〜 ${dates[dates.length - 1]}` : '-';
+        }
+
+        function initializePagination() {
+            currentPage = 1;
+            pageSize = parseInt(document.getElementById('pageSize').value);
+        }
+
+        // === ソート機能 ===
         function setupSortHandlers() {
             const headers = document.querySelectorAll('th.sortable');
             headers.forEach(header => {
@@ -796,62 +805,17 @@
                     header.classList.add(sortDirection === 'asc' ? 'sort-asc' : 'sort-desc');
                     
                     currentPage = 1;
-                    sortAndUpdate();
+                    updateDisplay();
                 });
             });
         }
 
-        function sortAndUpdate() {
-            console.log('=== ソート処理開始 ===');
-            console.log('ソート対象列:', sortColumn, '方向:', sortDirection);
-            
-            if (!sortColumn) {
-                console.log('ソート列が未設定のため処理をスキップ');
-                return;
-            }
-            
-            // 常にgetCurrentData()を使用してフィルター済みデータを取得
-            const currentData = getCurrentData();
-            console.log('ソート前データ件数:', currentData.length);
-            
-            // ソート実行
-            currentData.sort((a, b) => {
-                let aVal = a[sortColumn] || '';
-                let bVal = b[sortColumn] || '';
-                
-                // 数値列の場合は数値として比較
-                if (['合計金額', '単価', '数量', '割引', '消費税'].includes(sortColumn)) {
-                    aVal = parseFloat(aVal) || 0;
-                    bVal = parseFloat(bVal) || 0;
-                }
-                
-                if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
-                if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
-                return 0;
-            });
-            
-            console.log('ソート完了:', currentData.length, '件');
-            
-            // 通常のupdateDisplayを使用（データ整合性を保つため）
-            updateDisplay();
-            
-            console.log('=== ソート処理完了 ===');
-        }
-
+        // === ページネーション機能 ===
         function goToPage(page) {
-            console.log('=== goToPage 呼び出し ===', 'ページ:', page);
-            if (page < 1 || page > totalPages) {
-                console.log('無効なページ番号:', page);
-                return;
-            }
+            console.log('=== goToPage:', page, '===');
+            if (page < 1 || page > totalPages) return;
             currentPage = page;
-            console.log('currentPage を更新:', currentPage);
-            
             updateDisplay();
-            
-            if (sortColumn) {
-                sortAndUpdate();
-            }
         }
 
         function goToInputPage() {
@@ -863,19 +827,14 @@
             pageSize = parseInt(document.getElementById('pageSize').value);
             currentPage = 1;
             updateDisplay();
-            
-            if (sortColumn) {
-                sortAndUpdate();
-            }
         }
 
+        // === 期間フィルター機能 ===
         function applyDateFilter() {
-            console.log('=== 期間フィルター適用開始 ===');
+            console.log('=== 期間フィルター適用 ===');
             
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
-            
-            console.log('設定期間:', { startDate, endDate });
             
             if (!startDate || !endDate) {
                 alert('開始日と終了日を両方設定してください');
@@ -887,34 +846,23 @@
                 return;
             }
             
-            // ページを最初に戻して期間フィルター適用
             currentPage = 1;
+            applyCurrentFilters();
             updateDisplay();
-            
-            // 適用結果をログ出力
-            const filteredData = getCurrentData();
-            console.log('期間フィルター適用結果:', filteredData.length, '件');
-            
-            console.log('=== 期間フィルター適用完了 ===');
         }
 
         function clearDateFilter() {
-            console.log('=== 期間フィルタークリア開始 ===');
+            console.log('=== 期間フィルタークリア ===');
             
             document.getElementById('startDate').value = '';
             document.getElementById('endDate').value = '';
             
-            // ページを最初に戻して表示更新
             currentPage = 1;
+            applyCurrentFilters();
             updateDisplay();
-            
-            // クリア結果をログ出力
-            const allDataCount = getCurrentData();
-            console.log('期間フィルタークリア結果:', allDataCount.length, '件（全データ表示）');
-            
-            console.log('=== 期間フィルタークリア完了 ===');
         }
-        
+
+        // === カテゴリフィルター機能 ===
         function setupFilters(data) {
             const filterConfigs = [
                 { id: 'departmentFilters', column: '請求先' },
@@ -943,66 +891,37 @@
         }
         
         function selectAllFilter(type) {
-            console.log(`=== ${type}フィルター全選択 ===`);
-            
             const selector = `#${type}Filters input[type="checkbox"]`;
-            const checkboxes = document.querySelectorAll(selector);
-            
-            checkboxes.forEach(cb => cb.checked = true);
-            
-            console.log(`${type}フィルター全選択完了:`, checkboxes.length, '個');
+            document.querySelectorAll(selector).forEach(cb => cb.checked = true);
         }
         
         function deselectAllFilter(type) {
-            console.log(`=== ${type}フィルター全解除 ===`);
-            
             const selector = `#${type}Filters input[type="checkbox"]`;
-            const checkboxes = document.querySelectorAll(selector);
-            
-            checkboxes.forEach(cb => cb.checked = false);
-            
-            console.log(`${type}フィルター全解除完了:`, checkboxes.length, '個');
+            document.querySelectorAll(selector).forEach(cb => cb.checked = false);
         }
         
         function applyFilters() {
-            console.log('=== フィルター適用開始 ===');
+            console.log('=== カテゴリフィルター適用 ===');
             
-            // フィルター適用前の状態をログ出力
-            const filterStates = {
-                department: document.querySelectorAll('#departmentFilters input[type="checkbox"]:checked').length,
-                payment: document.querySelectorAll('#paymentFilters input[type="checkbox"]:checked').length,
-                slip: document.querySelectorAll('#slipFilters input[type="checkbox"]:checked').length,
-                store: document.querySelectorAll('#storeFilters input[type="checkbox"]:checked').length,
-                product: document.querySelectorAll('#productFilters input[type="checkbox"]:checked').length
-            };
-            
-            console.log('フィルター選択状況:', filterStates);
-            
-            // ページを最初に戻してフィルター適用
+            window.filtersEnabled = true;  // フィルター有効化
             currentPage = 1;
+            applyCurrentFilters();
             updateDisplay();
-            
-            // ソートが適用されている場合は再ソート
-            if (sortColumn) {
-                console.log('ソート再適用:', sortColumn, sortDirection);
-                sortAndUpdate();
-            }
-            
-            console.log('=== フィルター適用完了 ===');
         }
         
         function resetFilters() {
-            console.log('=== フィルターリセット開始 ===');
+            console.log('=== フィルターリセット ===');
             
-            // すべてのチェックボックスをチェック状態に
+            // フィルター無効化
+            window.filtersEnabled = false;
+            
+            // チェックボックス全選択
             const checkboxes = document.querySelectorAll('#filterSection input[type="checkbox"]');
             checkboxes.forEach(cb => cb.checked = true);
-            console.log('チェックボックス全選択完了:', checkboxes.length, '個');
             
             // 期間クリア
             document.getElementById('startDate').value = '';
             document.getElementById('endDate').value = '';
-            console.log('期間設定クリア完了');
             
             // ソート状態クリア
             sortColumn = null;
@@ -1010,17 +929,13 @@
             document.querySelectorAll('th.sortable').forEach(h => {
                 h.classList.remove('sort-asc', 'sort-desc');
             });
-            console.log('ソート状態クリア完了');
             
-            // ページを最初に戻す
             currentPage = 1;
-            
-            // 表示更新
+            applyCurrentFilters();
             updateDisplay();
-            
-            console.log('=== フィルターリセット完了 ===');
         }
         
+        // === メイン処理 ===
         window.addEventListener('load', async function() {
             console.log('=== ページ読み込み完了 ===');
             
