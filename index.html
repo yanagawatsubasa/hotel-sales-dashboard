@@ -518,7 +518,7 @@
         
         // === グローバル変数 ===
         let allData = [];           // 全データ（変更不可）
-        let displayData = [];       // 現在表示対象のデータ（フィルター結果）
+        let filteredDataCache = []; // 現在表示対象のデータ（フィルター結果）
         let currentPage = 1;
         let pageSize = 500;
         let totalPages = 1;
@@ -638,15 +638,15 @@
                 console.log('カテゴリフィルター: 無効（初期状態）');
             }
             
-            displayData = data;
-            console.log('=== フィルター適用完了:', displayData.length, '件 ===');
+            filteredDataCache = data;
+            console.log('=== フィルター適用完了:', filteredDataCache.length, '件 ===');
         }
 
         function updateDisplay() {
             console.log('=== updateDisplay 開始 ===');
-            console.log('表示対象データ件数:', displayData.length);
+            console.log('表示対象データ件数:', filteredDataCache.length);
             
-            let currentData = [...displayData];
+            let currentData = [...filteredDataCache];
             
             // ソート適用
             if (sortColumn) {
@@ -739,12 +739,12 @@
         }
 
         // === 初期化関数 ===
-        function displayData(data) {
-            console.log('=== displayData 開始 ===');
+        function initializeDisplay(data) {
+            console.log('=== initializeDisplay 開始 ===');
             console.log('受信データ:', data.length, '件');
             
             allData = [...data];
-            displayData = [...data];  // 初期状態は全データ
+            filteredDataCache = [...data];  // 初期状態は全データ
             window.filtersEnabled = false;  // 初期状態ではフィルター無効
             
             const debugInfo = `
@@ -768,11 +768,12 @@
                 document.getElementById('filterSection').style.display = 'block';
                 document.getElementById('dataSection').style.display = 'block';
                 
-                console.log('=== displayData 完了 ===');
+                console.log('=== initializeDisplay 完了 ===');
                 
             } catch (error) {
-                console.error('displayData関数内でエラー:', error);
+                console.error('initializeDisplay関数内でエラー:', error);
             }
+        }
         }
 
         function getDateRange(data) {
@@ -946,7 +947,7 @@
                 
                 if (data.length > 0) {
                     document.getElementById('status').innerHTML = `<span class="success">✅ ${data.length}件のデータを全件取得しました</span>`;
-                    displayData(data);
+                    initializeDisplay(data);
                 } else {
                     document.getElementById('status').innerHTML = '<span class="error">❌ データが取得できませんでした</span>';
                 }
