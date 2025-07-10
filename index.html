@@ -390,11 +390,13 @@
         #yoyComparison {
             flex-grow: 1;
             overflow-y: auto;
+            min-height: 0; /* flex-growが正しく機能するために追加 */
         }
         #ecRatioCalculator {
             display: flex;
             flex-direction: column;
             flex-grow: 1;
+            min-height: 0; /* flex-growが正しく機能するために追加 */
         }
         #ecRatioCalculator p {
             font-size: 0.9em;
