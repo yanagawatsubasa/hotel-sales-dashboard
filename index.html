@@ -390,13 +390,11 @@
         #yoyComparison {
             flex-grow: 1;
             overflow-y: auto;
-            height: 0; /* flex-growが正しく機能するために追加 */
         }
         #ecRatioCalculator {
             display: flex;
             flex-direction: column;
             flex-grow: 1;
-            height: 0; /* flex-growが正しく機能するために追加 */
         }
         #ecRatioCalculator p {
             font-size: 0.9em;
@@ -974,8 +972,10 @@
             
             const savedClients = loadSelectedClients();
 
-            clients.forEach(client => {
-                const checkboxId = `ec-client-${btoa(unescape(encodeURIComponent(client))).replace(/=/g, '')}`;
+            clients.forEach((client, index) => {
+                // HTML IDとして安全な文字列に変換
+                const safeClientName = client.replace(/[^a-zA-Z0-9-_]/g, '');
+                const checkboxId = `ec-client-${safeClientName}-${index}`;
                 const label = document.createElement('label');
                 label.htmlFor = checkboxId;
                 
