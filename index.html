@@ -353,12 +353,15 @@
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 20px;
             margin-bottom: 20px;
+            align-items: stretch;
         }
 
         .analysis-card {
             background: #f8f9fa;
             padding: 20px;
             border-radius: 8px;
+            display: flex;
+            flex-direction: column;
         }
 
         .analysis-card h3 {
@@ -382,20 +385,31 @@
             text-align: center;
             background-color: #e9ecef;
         }
+        #ecRatioCalculator {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
         #ecRatioCalculator p {
             font-size: 0.9em;
-            margin-bottom: 5px;
+            margin-bottom: 10px;
         }
-        #ecRatioCalculator button {
-            background: #28a745;
-            color: white;
-            border: none;
-            padding: 8px 12px;
+        #ecClientCheckboxes {
+            flex-grow: 1;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
             border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        #ecClientCheckboxes label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9em;
             cursor: pointer;
         }
-        #ecRatioCalculator button:hover {
-            background: #218838;
+        #ecClientCheckboxes input {
+            margin-right: 6px;
         }
     </style>
 </head>
@@ -458,8 +472,7 @@
                         <h3>EC販売比率</h3>
                         <div id="ecRatioCalculator">
                             <p>分析対象の請求先を選択してください:</p>
-                            <select id="ecClientSelector" multiple style="width: 100%; height: 100px; margin-bottom: 10px; padding: 5px; border-radius: 5px; border: 1px solid #ddd;"></select>
-                            <button onclick="calculateAndDisplayECRatio()">比率を計算</button>
+                            <div id="ecClientCheckboxes"></div>
                             <div id="ecRatioResult" style="margin-top: 10px; font-size: 1.2em; font-weight: bold;">-</div>
                         </div>
                     </div>
@@ -931,44 +944,54 @@
             updateDisplay();
         }
 
-        // --- 新しい分析機能 ---
+        // --- 分析機能 ---
 
-        // 分析セクション更新
         function updateAnalysis(data) {
             const analysisSection = document.getElementById('analysisSection');
             if (data.length > 0) {
                 analysisSection.style.display = 'block';
                 calculateAndDisplayYoY(data);
-                // EC比率はボタンクリックで計算するので、ここではリセットのみ
-                document.getElementById('ecRatioResult').textContent = '-';
+                calculateAndDisplayECRatio();
             } else {
                 analysisSection.style.display = 'none';
             }
         }
 
-        // ECクライアントセレクター設定
-        function setupECClientSelector(data) {
-            const selector = document.getElementById('ecClientSelector');
-            if (!selector) return;
+        function setupECClientCheckboxes(data) {
+            const container = document.getElementById('ecClientCheckboxes');
+            if (!container) return;
 
             const clients = [...new Set(data.map(row => row['請求先']).filter(v => v))].sort();
-            selector.innerHTML = '';
+            container.innerHTML = '';
+            
+            const savedClients = loadSelectedClients();
+
             clients.forEach(client => {
-                const option = document.createElement('option');
-                option.value = client;
-                option.textContent = client;
-                selector.appendChild(option);
+                const checkboxId = `ec-client-${client.replace(/[^a-zA-Z0-9]/g, '')}`;
+                const label = document.createElement('label');
+                label.htmlFor = checkboxId;
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = checkboxId;
+                checkbox.value = client;
+                checkbox.checked = savedClients.includes(client);
+                
+                checkbox.addEventListener('change', calculateAndDisplayECRatio);
+
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(` ${client}`));
+                container.appendChild(label);
             });
         }
 
-        // 昨対比の計算と表示
         function calculateAndDisplayYoY(data) {
             const container = document.getElementById('yoyComparison');
-            const salesByMonth = {}; // { 'YYYY-MM': totalSales }
+            const salesByMonth = {};
 
             for (const row of data) {
                 if (row.日付 && row.合計金額) {
-                    const yearMonth = row.日付.substring(0, 7); // 'YYYY-MM'
+                    const yearMonth = row.日付.substring(0, 7);
                     salesByMonth[yearMonth] = (salesByMonth[yearMonth] || 0) + row.合計金額;
                 }
             }
@@ -1034,16 +1057,15 @@
             container.innerHTML = tableHtml;
         }
 
-        // EC販売比率の計算と表示
         function calculateAndDisplayECRatio() {
-            const selector = document.getElementById('ecClientSelector');
+            const checkboxContainer = document.getElementById('ecClientCheckboxes');
             const resultEl = document.getElementById('ecRatioResult');
-            const selectedClients = Array.from(selector.selectedOptions).map(opt => opt.value);
+            if (!checkboxContainer || !resultEl) return;
 
-            if (selectedClients.length === 0) {
-                resultEl.textContent = '請求先を選択してください。';
-                return;
-            }
+            const selectedClients = Array.from(checkboxContainer.querySelectorAll('input[type="checkbox"]:checked'))
+                .map(cb => cb.value);
+
+            saveSelectedClients(selectedClients);
 
             const totalSales = currentDisplayData.reduce((sum, row) => sum + (row.合計金額 || 0), 0);
             if (totalSales === 0) {
@@ -1059,6 +1081,23 @@
             resultEl.innerHTML = `選択請求先の売上: ${ecSales.toLocaleString()}円<br>EC販売比率: <span style="color: #007bff;">${ratio.toFixed(2)}%</span>`;
         }
 
+        function saveSelectedClients(clients) {
+            try {
+                localStorage.setItem('selectedECClients', JSON.stringify(clients));
+            } catch (e) {
+                console.error('Failed to save EC clients to localStorage', e);
+            }
+        }
+
+        function loadSelectedClients() {
+            try {
+                const saved = localStorage.getItem('selectedECClients');
+                return saved ? JSON.parse(saved) : [];
+            } catch (e) {
+                console.error('Failed to load EC clients from localStorage', e);
+                return [];
+            }
+        }
 
         // 初期化
         function initializeApp(data) {
@@ -1085,10 +1124,12 @@
                 currentPage = 1;
                 pageSize = parseInt(document.getElementById('pageSize').value);
                 
-                updateDisplay();
                 setupFilters(data);
-                setupECClientSelector(data);
+                setupECClientCheckboxes(data);
                 setupSortHandlers();
+                
+                applyCurrentFilters();
+                updateDisplay();
                 
                 document.getElementById('filterSection').style.display = 'block';
                 document.getElementById('dataSection').style.display = 'block';
