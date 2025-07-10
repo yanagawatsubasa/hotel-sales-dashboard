@@ -967,7 +967,9 @@
             const analysisSection = document.getElementById('analysisSection');
             if (data.length > 0) {
                 analysisSection.style.display = 'block';
-                calculateAndDisplayYoY(data);
+                // 月次昨対比は常に全データを使用
+                calculateAndDisplayYoY(allData);
+                // EC販売比率は現在のフィルターデータを使用
                 calculateAndDisplayECRatio();
             } else {
                 analysisSection.style.display = 'none';
