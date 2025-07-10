@@ -1088,6 +1088,7 @@
                 .reduce((sum, row) => sum + (row.合計金額 || 0), 0);
             
             const ratio = (ecSales / totalSales) * 100;
+            resultEl.style.marginTop = 'auto'; /* 追加 */
             resultEl.innerHTML = `選択請求先の売上: ${ecSales.toLocaleString()}円<br>EC販売比率: <span style="color: #007bff;">${ratio.toFixed(2)}%</span>`;
         }
 
